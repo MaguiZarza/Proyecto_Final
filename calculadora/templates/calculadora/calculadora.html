@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Hilo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+
+    <h1 class="mb-4">Calculadora de Hilo</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            {{ form.consumo.label_tag }}
+            {{ form.consumo }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.metros_tela.label_tag }}
+            {{ form.metros_tela }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Calcular
+        </button>
+    </form>
+
+    {% if resultado %}
+        <hr>
+        <div class="alert alert-success mt-4">
+            <h4>Resultado</h4>
+            <p>
+                <strong>Tela:</strong> {{ consumo.tela.nombre }} <br>
+                <strong>Configuración:</strong> {{ consumo.configuracion.nombre }} <br>
+                <strong>Consumo por metro:</strong> {{ consumo.metros_hilo_por_metro_tela }} <br>
+                <strong>Metros de tela:</strong> {{ metros }} <br>
+                <strong>Total consumo:</strong> {{ resultado }}
+            </p>
+        </div>
+    {% endif %}
+
+</div>
+</body>
+</html>
