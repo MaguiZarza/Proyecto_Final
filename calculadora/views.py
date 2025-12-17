@@ -2,7 +2,6 @@ from django.shortcuts import render
 from .forms import CalculadoraForm, CalculadoraMaterialesForm
 from .models import Formula
 from registro_op.models import Operacion
->>>>>>> 5bb4188 (Registro de operaciones de la calculadora de materiales)
 
 def calculadora(request):
     resultado = None
@@ -25,8 +24,6 @@ def calculadora(request):
         'consumo': consumo_seleccionado,
         'metros': metros,
     })
-<<<<<<< HEAD
-=======
 
 # Calculadora Materiales
 def calculadora_materiales(request):
@@ -68,4 +65,3 @@ def calculadora_materiales(request):
         'producto': producto,
         'cantidad': cantidad
     })
->>>>>>> 5bb4188 (Registro de operaciones de la calculadora de materiales)
