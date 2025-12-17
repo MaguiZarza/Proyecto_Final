@@ -1,12 +1,19 @@
 from django.contrib import admin
 
-# MODELOS
+# MODELOS 
 from .models import (
+    # MODELOS EXISTENTES (calculadora de hilo)
     Hilo,
     Tela,
     ConfiguracionMaquina,
     ConfiguracionHilo,
-    ConsumoTela
+    ConsumoTela,
+
+    # NUEVOS MODELOS (calculadora de materiales)
+    Producto,
+    Material,
+    Formula,
+    FormulaDetalle
 )
 
 # HILO
@@ -38,3 +45,53 @@ class ConfiguracionMaquinaAdmin(admin.ModelAdmin):
 class ConsumoTelaAdmin(admin.ModelAdmin):
     list_display = ('tela', 'configuracion', 'metros_hilo_por_metro_tela')
     list_filter = ('configuracion__tipo_maquina',)
+
+
+# ------------------ CALCULADORA DE MATERIALES ------------------ #
+
+class FormulaDetalleInline(admin.TabularInline):
+    model = FormulaDetalle
+    extra = 1
+
+
+@admin.register(Formula)
+class FormulaAdmin(admin.ModelAdmin):
+    list_display = ('producto', 'activa')
+    inlines = [FormulaDetalleInline]
+
+
+@admin.register(Producto)
+class ProductoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'codigo', 'activo')
+
+
+@admin.register(Material)
+class MaterialAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'tipo', 'unidad', 'activo')
+
+
+# # ------------------ CALCULADORA DE MATERIALES ------------------ #
+
+# class FormulaDetalleInline(admin.TabularInline):
+#     model = FormulaDetalle
+#     extra = 1
+
+
+# @admin.register(Formula)
+# class FormulaAdmin(admin.ModelAdmin):
+#     list_display = ('producto', 'activa')
+#     inlines = [FormulaDetalleInline]
+
+
+# @admin.register(Producto)
+# class ProductoAdmin(admin.ModelAdmin):
+#     list_display = ('nombre', 'codigo', 'activo')
+#     search_fields = ('nombre', 'codigo')
+#     list_filter = ('activo',)
+
+
+# @admin.register(Material)
+# class MaterialAdmin(admin.ModelAdmin):
+#     list_display = ('nombre', 'tipo', 'unidad', 'activo')
+#     list_filter = ('tipo', 'activo')
+#     search_fields = ('nombre',)
