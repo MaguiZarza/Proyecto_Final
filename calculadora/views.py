@@ -3,6 +3,7 @@ from .forms import CalculadoraForm, CalculadoraMaterialesForm
 from .models import Formula
 from registro_op.models import Operacion
 
+# Calculadora Hilo
 def calculadora(request):
     resultado = None
     consumo_seleccionado = None
