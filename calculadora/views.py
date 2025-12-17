@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from .forms import CalculadoraForm, CalculadoraMaterialesForm
 from .models import Formula
+from registro_op.models import Operacion
 
 # Calculadora Hilo
 def calculadora(request):
@@ -14,7 +15,6 @@ def calculadora(request):
             consumo_seleccionado = form.cleaned_data['consumo']
             metros = form.cleaned_data['metros_tela']
 
-            # cálculo correcto
             resultado = consumo_seleccionado.metros_hilo_por_metro_tela * metros
     else:
         form = CalculadoraForm()
@@ -53,6 +53,12 @@ def calculadora_materiales(request):
 
             except Formula.DoesNotExist:
                 resultados = []
+
+            Operacion.objects.create(
+                usuario=request.user if request.user.is_authenticated else None,
+                accion='calculo_materiales',
+                descripcion=f'Cálculo de materiales - Producto: {producto.nombre} - Cantidad: {cantidad}'
+            )
 
     return render(request, 'calculadora/calculadora_materiales.html', {
         'form': form,
