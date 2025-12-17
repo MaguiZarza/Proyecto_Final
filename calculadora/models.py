@@ -1,6 +1,8 @@
 from django.db import models
 from decimal import Decimal, ROUND_CEILING
 
+print(">>> MODELS CALCULADORA CARGADOS <<<")
+
 # Configuraciones pre-calculo
 class TipoMaquina(models.TextChoices):
     RECTA = 'RECTA', 'Recta'
@@ -98,3 +100,144 @@ class ConsumoTela(models.Model):
             }
 
         return resultado
+
+class Material(models.Model):
+    TIPO_CHOICES = [
+        ('tela', 'Tela'),
+        ('hilo', 'Hilo'),
+        ('avios', 'Avíos'),
+        ('otro', 'Otro'),
+    ]
+
+    nombre = models.CharField(max_length=100)
+    unidad = models.CharField(max_length=20)
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_CHOICES,
+        default='hilo'
+    )
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Producto(models.Model):
+    nombre = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=50, unique=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Formula(models.Model):
+    producto = models.OneToOneField(
+        Producto,
+        on_delete=models.CASCADE
+    )
+    activa = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Fórmula - {self.producto.nombre}"
+
+
+class FormulaDetalle(models.Model):
+    formula = models.ForeignKey(
+        Formula,
+        on_delete=models.CASCADE,
+        related_name='detalles'
+    )
+    material = models.ForeignKey(
+        Material,
+        on_delete=models.PROTECT
+    )
+    cantidad_por_unidad = models.DecimalField(
+        max_digits=10,
+        decimal_places=3
+    )
+
+    def __str__(self):
+        return self.material.nombre
+
+# # Calculadora de materiales:
+# class Material(models.Model):
+#     TIPO_CHOICES = [
+#         ('tela', 'Tela'),
+#         ('hilo', 'Hilo'),
+#         ('avios', 'Avíos'),
+#         ('otro', 'Otro'),
+#     ]
+
+#     nombre = models.CharField(max_length=100)
+#     unidad = models.CharField(max_length=20)
+
+#     tipo = models.CharField(
+#         max_length=20,
+#         choices=TIPO_CHOICES,
+#         default='otro'
+#     )
+
+#     activo = models.BooleanField(default=True)
+
+#     def __str__(self):
+#         return f"{self.nombre} ({self.unidad})"
+
+
+
+# # PRODUCTOS
+# class Producto(models.Model):
+#     nombre = models.CharField(max_length=100)
+
+#     codigo = models.CharField(
+#         max_length=50,
+#         unique=True,
+#         null=True,
+#         blank=True
+#     )
+
+#     activo = models.BooleanField(default=True)
+
+#     def __str__(self):
+#         return self.nombre
+
+
+# # =========================
+# # FÓRMULA (CABECERA)
+# # =========================
+# class Formula(models.Model):
+#     producto = models.OneToOneField(
+#         Producto,
+#         on_delete=models.CASCADE,
+#         null=True,
+#         blank=True
+#     )
+
+#     activa = models.BooleanField(default=True)
+
+#     def __str__(self):
+#         if self.producto:
+#             return f"Fórmula - {self.producto.nombre}"
+#         return "Fórmula sin producto"
+
+
+# # FÓRMULA DETALLE
+# class FormulaDetalle(models.Model):
+#     formula = models.ForeignKey(
+#         Formula,
+#         on_delete=models.CASCADE,
+#         related_name='detalles'
+#     )
+
+#     material = models.ForeignKey(
+#         Material,
+#         on_delete=models.PROTECT
+#     )
+
+#     cantidad_por_unidad = models.DecimalField(
+#         max_digits=10,
+#         decimal_places=3
+#     )
+
+#     def __str__(self):
+#         return self.material.nombre
