@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}Pedido {{ pedido.codigo }} - Taller Textil{% endblock %}
+{% block page_title %}Pedido: {{ pedido.codigo }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Información del Pedido</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">Código:</th>
+                                <td>{{ pedido.codigo }}</td>
+                            </tr>
+                            <tr>
+                                <th>Cliente:</th>
+                                <td>{{ pedido.cliente }}</td>
+                            </tr>
+                            <tr>
+                                <th>Producto:</th>
+                                <td>
+                                    {% if pedido.producto %}
+                                        {{ pedido.producto.nombre }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Cantidad:</th>
+                                <td>{{ pedido.cantidad }} unidades</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">Estado:</th>
+                                <td>
+                                    <span class="status-badge status-{{ pedido.estado }}">
+                                        {{ pedido.get_estado_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Prioridad:</th>
+                                <td>
+                                    <span class="priority-badge priority-{{ pedido.prioridad }}"></span>
+                                    {{ pedido.get_prioridad_display }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Fecha Entrega:</th>
+                                <td>
+                                    {{ pedido.fecha_entrega|date:"d/m/Y" }}
+                                    {% if pedido.es_urgente %}
+                                        <span class="badge bg-danger ms-1">Urgente</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Creado por:</th>
+                                <td>{{ pedido.creado_por.username }} el {{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if pedido.especificaciones %}
+                <div class="mb-3">
+                    <h6>Especificaciones:</h6>
+                    <p class="mb-0">{{ pedido.especificaciones|linebreaks }}</p>
+                </div>
+                {% endif %}
+                
+                {% if pedido.observaciones %}
+                <div class="mb-3">
+                    <h6>Observaciones:</h6>
+                    <p class="mb-0">{{ pedido.observaciones|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Órdenes de producción relacionadas -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Órdenes de Producción</h6>
+                <a href="{% url 'ordenproduccion_create_from_pedido' pedido_id=pedido.pk %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Crear Orden
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Método</th>
+                                <th>Fecha Programada</th>
+                                <th>Progreso</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes %}
+                            <tr>
+                                <td>{{ orden.codigo }}</td>
+                                <td>{{ orden.metodo.nombre }}</td>
+                                <td>{{ orden.fecha_programada|date:"d/m/Y" }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress progress-bar-custom flex-grow-1 me-2">
+                                            <div class="progress-bar bg-success" style="width: {{ orden.progreso }}%"></div>
+                                        </div>
+                                        <span class="small">{{ orden.progreso }}%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ orden.estado }}">
+                                        {{ orden.get_estado_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'ordenproduccion_detail' pk=orden.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    No hay órdenes de producción para este pedido
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Acciones -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Acciones</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'pedido_update' pk=pedido.pk %}" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil me-2"></i> Editar Pedido
+                    </a>
+                    
+                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal">
+                        <i class="bi bi-arrow-repeat me-2"></i> Cambiar Estado
+                    </button>
+                    
+                    <a href="{% url 'ordenproduccion_create_from_pedido' pedido_id=pedido.pk %}" class="btn btn-success">
+                        <i class="bi bi-clipboard-plus me-2"></i> Crear Orden
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cambiar estado modal -->
+        <div class="modal fade" id="cambiarEstadoModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" action="{% url 'cambiar_estado_pedido' pk=pedido.pk %}">
+                        {% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title">Cambiar Estado del Pedido</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="estado" class="form-label">Nuevo Estado</label>
+                                <select name="estado" class="form-select" required>
+                                    {% for estado in pedido.ESTADO_CHOICES %}
+                                    <option value="{{ estado.0 }}" {% if pedido.estado == estado.0 %}selected{% endif %}>
+                                        {{ estado.1 }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Actualizar Estado</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información adicional -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Información Adicional</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="small text-muted">Tiempo restante:</h6>
+                    <div class="d-flex align-items-center">
+                        {% if pedido.dias_restantes > 0 %}
+                        <span class="badge bg-info me-2">{{ pedido.dias_restantes }} días</span>
+                        <small class="text-muted">para la entrega</small>
+                        {% elif pedido.dias_restantes == 0 %}
+                        <span class="badge bg-warning me-2">Hoy</span>
+                        <small class="text-muted">es la fecha de entrega</small>
+                        {% else %}
+                        <span class="badge bg-danger me-2">Atrasado</span>
+                        <small class="text-muted">{{ pedido.dias_restantes|abs }} días de retraso</small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Progreso total:</h6>
+                    <div class="progress progress-bar-custom mb-2">
+                        <div class="progress-bar bg-success" style="width: {{ pedido.progreso_total }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ pedido.progreso_total|floatformat:1 }}% completado</small>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Materiales estimados:</h6>
+                    <small class="text-muted">
+                        {% if pedido.producto and pedido.producto.materiales_estimados %}
+                            {{ pedido.producto.materiales_estimados }}
+                        {% else %}
+                            No especificado
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

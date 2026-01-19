@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">📋 Historial de Operaciones</h1>
+    
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Registro de todas las operaciones del sistema</span>
+            <a href="?export=csv" class="btn btn-sm btn-outline-primary">📥 Exportar CSV</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for operacion in operaciones %}
+                        <tr>
+                            <td>{{ operacion.fecha|date:"d/m/Y H:i:s" }}</td>
+                            <td>
+                                {% if operacion.usuario %}
+                                {{ operacion.usuario.username }}
+                                {% else %}
+                                <span class="text-muted">Sistema</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if operacion.accion == 'calculo_materiales' %}success{% elif operacion.accion == 'calculo_hilo' %}info{% elif operacion.accion == 'proceso' %}warning{% else %}secondary{% endif %}">
+                                    {{ operacion.get_accion_display }}
+                                </span>
+                            </td>
+                            <td>{{ operacion.descripcion|truncatechars:100 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No hay operaciones registradas
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación simple -->
+            {% if operaciones.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if operaciones.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ operaciones.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            Página {{ operaciones.number }} de {{ operaciones.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if operaciones.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ operaciones.next_page_number }}">Siguiente</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    📊 Estadísticas
+                </div>
+                <div class="card-body">
+                    <p>Total operaciones: <strong>{{ operaciones|length }}</strong></p>
+                    <p>Operaciones hoy: <strong>{{ operaciones_today }}</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    🔍 Filtrar Historial
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Acción</label>
+                            <select name="accion" class="form-select">
+                                <option value="">Todas las acciones</option>
+                                <option value="calculo_materiales">Cálculo de materiales</option>
+                                <option value="calculo_hilo">Cálculo de hilo</option>
+                                <option value="proceso">Proceso de producción</option>
+                                <option value="lote">Generación de lote</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha desde</label>
+                            <input type="date" name="fecha_desde" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha hasta</label>
+                            <input type="date" name="fecha_hasta" class="form-control">
+                        </div>
+                        <div class="col-12 mt-2">
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                            <a href="{% url 'historial_operaciones' %}" class="btn btn-secondary">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

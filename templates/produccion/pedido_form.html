@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar Pedido{% else %}Nuevo Pedido{% endif %} - Taller Textil{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Editar Pedido{% else %}Nuevo Pedido{% endblock %}</h1>{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cliente.id_for_label }}" class="form-label">Cliente *</label>
+                            {{ form.cliente }}
+                            {% if form.cliente.errors %}
+                            <div class="text-danger">
+                                {% for error in form.cliente.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.producto.id_for_label }}" class="form-label">Producto *</label>
+                            {{ form.producto }}
+                            {% if form.producto.errors %}
+                            <div class="text-danger">
+                                {% for error in form.producto.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cantidad.id_for_label }}" class="form-label">Cantidad *</label>
+                            {{ form.cantidad }}
+                            {% if form.cantidad.errors %}
+                            <div class="text-danger">
+                                {% for error in form.cantidad.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.prioridad.id_for_label }}" class="form-label">Prioridad *</label>
+                            {{ form.prioridad }}
+                            {% if form.prioridad.errors %}
+                            <div class="text-danger">
+                                {% for error in form.prioridad.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fecha_entrega.id_for_label }}" class="form-label">Fecha de Entrega *</label>
+                            {{ form.fecha_entrega }}
+                            <small class="text-muted">Formato: DD/MM/AAAA</small>
+                            {% if form.fecha_entrega.errors %}
+                            <div class="text-danger">
+                                {% for error in form.fecha_entrega.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado *</label>
+                            {{ form.estado }}
+                            {% if form.estado.errors %}
+                            <div class="text-danger">
+                                {% for error in form.estado.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.especificaciones.id_for_label }}" class="form-label">Especificaciones</label>
+                        {{ form.especificaciones }}
+                        {% if form.especificaciones.errors %}
+                        <div class="text-danger">
+                            {% for error in form.especificaciones.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.observaciones.id_for_label }}" class="form-label">Observaciones</label>
+                        {{ form.observaciones }}
+                        {% if form.observaciones.errors %}
+                        <div class="text-danger">
+                            {% for error in form.observaciones.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'pedido_list' %}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if form.instance.pk %}Actualizar Pedido{% else %}Crear Pedido{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatear campos de fecha
+    const fechaInputs = document.querySelectorAll('input[type="date"]');
+    fechaInputs.forEach(input => {
+        // Si el campo está vacío, establecer la fecha mínima como hoy
+        if (!input.value) {
+            const today = new Date().toISOString().split('T')[0];
+            input.min = today;
+        }
+    });
+});
+</script>
+{% endblock %}

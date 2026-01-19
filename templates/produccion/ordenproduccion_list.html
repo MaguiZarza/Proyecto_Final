@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Órdenes de Producción - Taller Textil{% endblock %}
+{% block page_title %}Órdenes de Producción{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <select name="estado" class="form-select">
+                    <option value="">Todos los estados</option>
+                    {% for estado in estados %}
+                        <option value="{{ estado.0 }}" {% if request.GET.estado == estado.0 %}selected{% endif %}>
+                            {{ estado.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <input type="text" name="supervisor" class="form-control" placeholder="Supervisor" value="{{ request.GET.supervisor }}">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'ordenproduccion_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i> Nueva Orden
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Pedido</th>
+                        <th>Método</th>
+                        <th>Programada</th>
+                        <th>Progreso</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold">{{ orden.codigo }}</span>
+                        </td>
+                        <td>
+                            {% if orden.pedido %}
+                                <a href="{% url 'pedido_detail' pk=orden.pedido.pk %}">{{ orden.pedido.codigo }}</a>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ orden.metodo.nombre|truncatechars:20 }}</td>
+                        <td>{{ orden.fecha_programada|date:"d/m/y" }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress progress-bar-custom flex-grow-1 me-2">
+                                    <div class="progress-bar bg-success" style="width: {{ orden.progreso }}%"></div>
+                                </div>
+                                <span class="small">{{ orden.progreso }}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ orden.estado }}">
+                                {{ orden.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'ordenproduccion_detail' pk=orden.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'actualizar_avance' pk=orden.pk %}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-arrow-up"></i>
+                                </a>
+                                <a href="{% url 'cambiar_estado_orden' pk=orden.pk %}" class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            No hay órdenes de producción registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="text-muted">Mostrando {{ ordenes|length }} órdenes</span>
+            </div>
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

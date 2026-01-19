@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">🧵 Calculadora de Consumo de Hilo</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    Parámetros de Cálculo
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.consumo.label }}</label>
+                            {{ form.consumo }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.metros_tela.label }}</label>
+                            {{ form.metros_tela }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Calcular</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            {% if resultado %}
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    📊 Resultados del Cálculo
+                </div>
+                <div class="card-body">
+                    <h5>Configuración seleccionada:</h5>
+                    <p><strong>Tela:</strong> {{ consumo.tela.nombre }}</p>
+                    <p><strong>Máquina:</strong> {{ consumo.configuracion.nombre }}</p>
+                    <p><strong>Metros de tela:</strong> {{ metros }} m</p>
+                    
+                    <hr>
+                    
+                    <h5>Consumo de hilo por tipo:</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tipo de Hilo</th>
+                                    <th>Metros Necesarios</th>
+                                    <th>Conos (exactos)</th>
+                                    <th>Conos (a comprar)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tipo_hilo, datos in resultado.items %}
+                                <tr>
+                                    <td>{{ tipo_hilo }}</td>
+                                    <td>{{ datos.metros_hilo }} m</td>
+                                    <td>{{ datos.conos }}</td>
+                                    <td><strong>{{ datos.conos_redondeados }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'calculadora_hilo' %}" class="btn btn-secondary">Nuevo Cálculo</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-header">
+                    ℹ️ Información
+                </div>
+                <div class="card-body">
+                    <p>Complete los datos a la izquierda para calcular el consumo de hilo necesario.</p>
+                    <p>El sistema calculará automáticamente:</p>
+                    <ul>
+                        <li>Metros de hilo por tipo</li>
+                        <li>Cantidad de conos exactos</li>
+                        <li>Cantidad a comprar (redondeado hacia arriba)</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

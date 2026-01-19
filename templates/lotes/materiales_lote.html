@@ -1,0 +1,303 @@
+<!-- templates/lotes/materiales_lote.html -->
+{% extends 'base.html' %}
+
+{% block title %}Materiales del Lote {{ lote.codigo }} - Taller Textil{% endblock %}
+{% block page_title %}Materiales del Lote: {{ lote.codigo }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Materiales asignados -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Materiales Asignados</h6>
+                <a href="{% url 'agregar_material_lote' lote_id=lote.id %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Agregar Material
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Material</th>
+                                <th>Tipo</th>
+                                <th>Cantidad Asignada</th>
+                                <th>Costo Unitario</th>
+                                <th>Costo Total</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for material in materiales %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ material.material.nombre }}</div>
+                                    <small class="text-muted">{{ material.material.codigo }}</small>
+                                </td>
+                                <td>{{ material.material.get_tipo_display }}</td>
+                                <td>
+                                    {{ material.cantidad_asignada }} {{ material.material.unidad }}
+                                </td>
+                                <td>${{ material.costo_unitario|floatformat:2 }}</td>
+                                <td>${{ material.costo_total|floatformat:2 }}</td>
+                                <td>
+                                    {% if material.entregado %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle me-1"></i> Entregado
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">{{ material.fecha_entrega|date:"d/m/Y" }}</small>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-clock me-1"></i> Pendiente
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {% if not material.entregado %}
+                                        <a href="{% url 'entregar_material' lote_id=lote.id material_id=material.id %}" 
+                                           class="btn btn-sm btn-outline-success"
+                                           onclick="return confirm('¿Marcar material como entregado?')">
+                                            <i class="bi bi-check-circle"></i>
+                                        </a>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleMaterial{{ material.id }}">
+                                            <i class="bi bi-info-circle"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Modal para detalles del material -->
+                                    <div class="modal fade" id="detalleMaterial{{ material.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">{{ material.material.nombre }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>Código:</th>
+                                                            <td>{{ material.material.codigo }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Tipo:</th>
+                                                            <td>{{ material.material.get_tipo_display }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Unidad:</th>
+                                                            <td>{{ material.material.unidad }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Cantidad Asignada:</th>
+                                                            <td>{{ material.cantidad_asignada }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Costo Unitario:</th>
+                                                            <td>${{ material.costo_unitario|floatformat:2 }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Costo Total:</th>
+                                                            <td>${{ material.costo_total|floatformat:2 }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Estado:</th>
+                                                            <td>
+                                                                {% if material.entregado %}
+                                                                <span class="badge bg-success">Entregado</span>
+                                                                {% else %}
+                                                                <span class="badge bg-warning">Pendiente</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                        {% if material.entregado %}
+                                                        <tr>
+                                                            <th>Fecha Entrega:</th>
+                                                            <td>{{ material.fecha_entrega|date:"d/m/Y H:i" }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Recibido por:</th>
+                                                            <td>{{ material.recibido_por.username|default:"N/A" }}</td>
+                                                        </tr>
+                                                        {% endif %}
+                                                    </table>
+                                                    
+                                                    {% if material.observaciones %}
+                                                    <h6>Observaciones:</h6>
+                                                    <p class="mb-0">{{ material.observaciones }}</p>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    No hay materiales asignados a este lote
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                                <td><strong>${{ costo_total|floatformat:2 }}</strong></td>
+                                <td colspan="2">
+                                    <div class="d-flex justify-content-between">
+                                        <small class="text-muted">{{ materiales_entregados }} entregados</small>
+                                        <small class="text-muted">{{ materiales_pendientes }} pendientes</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sugerencias de materiales -->
+        {% if materiales_disponibles %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Materiales Disponibles para Agregar</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for material in materiales_disponibles %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ material.nombre }}</h6>
+                                <div class="small text-muted mb-2">
+                                    <span class="badge bg-info">{{ material.get_tipo_display }}</span>
+                                    <span class="ms-2">{{ material.unidad }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Stock: {{ material.stock_actual }}</small>
+                                        <br>
+                                        <small class="text-muted">Costo: ${{ material.costo_promedio|floatformat:2 }}</small>
+                                    </div>
+                                    <a href="{% url 'agregar_material_lote' lote_id=lote.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-plus"></i> Agregar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar derecha -->
+    <div class="col-md-4">
+        <!-- Resumen del lote -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Resumen del Lote</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="small text-muted">Lote:</h6>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-tag me-2"></i>
+                        <span>{{ lote.codigo }} - {{ lote.nombre }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Producto:</h6>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-box me-2"></i>
+                        <span>
+                            {% if lote.producto %}
+                                {{ lote.producto.nombre }}
+                            {% else %}
+                                Sin producto
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Estado del Lote:</h6>
+                    <span class="status-badge status-{{ lote.estado }}">
+                        {{ lote.get_estado_display }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Materiales:</h6>
+                    <div class="progress progress-bar-custom mb-2">
+                        <div class="progress-bar bg-success" style="width: {{ porcentaje_entregado }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>{{ porcentaje_entregado|floatformat:1 }}% entregado</span>
+                        <span>{{ materiales_entregados }}/{{ materiales.count }} materiales</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Costos Totales:</h6>
+                    <div class="small">
+                        <div class="d-flex justify-content-between">
+                            <span>Materiales:</span>
+                            <span>${{ costo_total|floatformat:2 }}</span>
+                        </div>
+                        {% if lote.costo_estimado %}
+                        <div class="d-flex justify-content-between">
+                            <span>Estimado Total:</span>
+                            <span>${{ lote.costo_estimado|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'detalle_lote' pk=lote.pk %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-arrow-left me-1"></i> Volver al Lote
+                </a>
+            </div>
+        </div>
+        
+        <!-- Acciones rápidas -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Acciones Rápidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'agregar_material_lote' lote_id=lote.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i> Agregar Material
+                    </a>
+                    
+                    {% if materiales_pendientes > 0 %}
+                    <form method="post" action="{% url 'entregar_material' lote_id=lote.id material_id=0 %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="todos" value="true">
+                        <button type="submit" class="btn btn-success" onclick="return confirm('¿Marcar TODOS los materiales como entregados?')">
+                            <i class="bi bi-check-all me-2"></i> Entregar Todos
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <a href="{% url 'inventario_lista' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-boxes me-2"></i> Ver Inventario
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

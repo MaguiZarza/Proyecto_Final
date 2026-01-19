@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar Orden{% else %}Nueva Orden{% endif %} - Taller Textil{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Editar Orden de Producción{% else %}Nueva Orden de Producción{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.pedido.id_for_label }}" class="form-label">Pedido *</label>
+                            {{ form.pedido }}
+                            {% if form.pedido.errors %}
+                            <div class="text-danger">
+                                {% for error in form.pedido.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.metodo.id_for_label }}" class="form-label">Método de Producción *</label>
+                            {{ form.metodo }}
+                            {% if form.metodo.errors %}
+                            <div class="text-danger">
+                                {% for error in form.metodo.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cantidad_a_producir.id_for_label }}" class="form-label">Cantidad a Producir *</label>
+                            {{ form.cantidad_a_producir }}
+                            {% if form.cantidad_a_producir.errors %}
+                            <div class="text-danger">
+                                {% for error in form.cantidad_a_producir.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fecha_programada.id_for_label }}" class="form-label">Fecha Programada *</label>
+                            {{ form.fecha_programada }}
+                            {% if form.fecha_programada.errors %}
+                            <div class="text-danger">
+                                {% for error in form.fecha_programada.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.supervisor.id_for_label }}" class="form-label">Supervisor *</label>
+                            {{ form.supervisor }}
+                            {% if form.supervisor.errors %}
+                            <div class="text-danger">
+                                {% for error in form.supervisor.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado *</label>
+                            {{ form.estado }}
+                            {% if form.estado.errors %}
+                            <div class="text-danger">
+                                {% for error in form.estado.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.equipo.id_for_label }}" class="form-label">Equipo</label>
+                        {{ form.equipo }}
+                        {% if form.equipo.errors %}
+                        <div class="text-danger">
+                            {% for error in form.equipo.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.instrucciones.id_for_label }}" class="form-label">Instrucciones</label>
+                        {{ form.instrucciones }}
+                        {% if form.instrucciones.errors %}
+                        <div class="text-danger">
+                            {% for error in form.instrucciones.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notas.id_for_label }}" class="form-label">Notas</label>
+                        {{ form.notas }}
+                        {% if form.notas.errors %}
+                        <div class="text-danger">
+                            {% for error in form.notas.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'ordenproduccion_list' %}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if form.instance.pk %}Actualizar Orden{% else %}Crear Orden{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

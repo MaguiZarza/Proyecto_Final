@@ -1,0 +1,425 @@
+<!-- templates/produccion/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Taller Textil{% endblock %}
+{% block page_title %}Dashboard Principal{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Panel de estadísticas principales -->
+    <div class="col-12 mb-4">
+        <div class="row g-4">
+            <!-- Pedidos del día -->
+            <div class="col-md-3 col-sm-6">
+                <div class="card stat-card border-start border-primary border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Pedidos Hoy</h6>
+                                <h3 class="mb-0">{{ pedidos_recientes|length }}</h3>
+                                <small class="text-muted">
+                                    {% with total=pedidos_recientes|length completados=pedidos_completados %}
+                                        {{ completados }} completados
+                                    {% endwith %}
+                                </small>
+                            </div>
+                            <div class="stat-icon text-primary">
+                                <i class="bi bi-cart"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Órdenes activas -->
+            <div class="col-md-3 col-sm-6">
+                <div class="card stat-card border-start border-warning border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Órdenes Activas</h6>
+                                <h3 class="mb-0">{{ ordenes_activas }}</h3>
+                                <small class="text-muted">
+                                    {{ ordenes_completadas_hoy }} completadas hoy
+                                </small>
+                            </div>
+                            <div class="stat-icon text-warning">
+                                <i class="bi bi-clipboard-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pedidos urgentes -->
+            <div class="col-md-3 col-sm-6">
+                <div class="card stat-card border-start border-danger border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Pedidos Urgentes</h6>
+                                <h3 class="mb-0">{{ pedidos_urgentes }}</h3>
+                                <small class="text-muted">
+                                    Vencen en 2 días o menos
+                                </small>
+                            </div>
+                            <div class="stat-icon text-danger">
+                                <i class="bi bi-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Eficiencia -->
+            <div class="col-md-3 col-sm-6">
+                <div class="card stat-card border-start border-success border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Tasa Completación</h6>
+                                <h3 class="mb-0">
+                                    {% if pedidos_mes.total > 0 %}
+                                        {{ tasa_completacion|floatformat:0 }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </h3>
+                                <small class="text-muted">
+                                    Este mes
+                                </small>
+                            </div>
+                            <div class="stat-icon text-success">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos y tablas principales -->
+    <div class="col-lg-8">
+        <!-- Gráfico de pedidos por estado -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Distribución de Pedidos</h6>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary active" data-period="today">Hoy</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-period="week">Semana</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-period="month">Mes</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="ordersChart" height="250"></canvas>
+            </div>
+        </div>
+        
+        <!-- Pedidos recientes -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Pedidos Recientes</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Cliente</th>
+                                <th>Producto</th>
+                                <th>Entrega</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pedido in pedidos_recientes %}
+                            <tr>
+                                <td>
+                                    <span class="fw-bold">{{ pedido.codigo }}</span>
+                                </td>
+                                <td>{{ pedido.cliente|truncatechars:20 }}</td>
+                                <td>
+                                    {% if pedido.producto %}
+                                        {{ pedido.producto.nombre|truncatechars:20 }}
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pedido.fecha_entrega %}
+                                        {{ pedido.fecha_entrega|date:"d/m/y" }}
+                                        {% if pedido.es_urgente %}
+                                            <span class="badge bg-danger ms-1">!</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ pedido.estado }}">
+                                        {{ pedido.get_estado_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'pedido_detail' pk=pedido.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    No hay pedidos recientes
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <a href="{% url 'pedido_list' %}" class="btn btn-sm btn-primary">
+                    Ver todos los pedidos <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar derecha con información rápida -->
+    <div class="col-lg-4">
+        <!-- Órdenes en progreso -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Órdenes en Progreso</h6>
+            </div>
+            <div class="card-body">
+                {% for orden in ordenes_en_progreso %}
+                <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1">{{ orden.codigo }}</h6>
+                            <small class="text-muted">
+                                {{ orden.pedido.cliente|truncatechars:20 }}
+                            </small>
+                        </div>
+                        <span class="badge bg-warning text-dark">
+                            {{ orden.get_estado_display }}
+                        </span>
+                    </div>
+                    <div class="progress progress-bar-custom mb-2">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ orden.progreso }}%"
+                             aria-valuenow="{{ orden.progreso }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>{{ orden.progreso }}% completado</span>
+                        <span>{{ orden.cantidad_producida }}/{{ orden.cantidad_a_producir }} unidades</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-2">No hay órdenes en progreso</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Planificaciones próximas -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Planificaciones Próximas</h6>
+            </div>
+            <div class="card-body">
+                {% for plan in planificaciones_proximas %}
+                <div class="alert {% if plan.es_para_hoy %}alert-info{% else %}alert-light{% endif %} mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="alert-heading mb-1">{{ plan.nombre|truncatechars:25 }}</h6>
+                            <div class="small">
+                                <i class="bi bi-calendar me-1"></i>
+                                {{ plan.fecha_inicio|date:"d/m" }} - {{ plan.fecha_fin|date:"d/m" }}
+                            </div>
+                        </div>
+                        <span class="badge {% if plan.activa %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ plan.ordenes.count }} órdenes
+                        </span>
+                    </div>
+                    {% if plan.comentarios %}
+                    <p class="mb-0 small mt-2">{{ plan.comentarios|truncatechars:50 }}</p>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-calendar-week fs-1"></i>
+                    <p class="mt-2">No hay planificaciones próximas</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Acciones rápidas -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Acciones Rápidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'pedido_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i> Nuevo Pedido
+                    </a>
+                    <a href="{% url 'ordenproduccion_create' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-clipboard-plus me-2"></i> Nueva Orden
+                    </a>
+                    <a href="{% url 'generar_reporte_rapido' %}?tipo=diario" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-text me-2"></i> Generar Reporte
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico de eficiencia -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Eficiencia de Producción (Últimos 7 días)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="efficiencyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de distribución de pedidos
+    const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+    const ordersChart = new Chart(ordersCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pendientes', 'En Proceso', 'Completados'],
+            datasets: [{
+                data: [
+                    {{ pedidos_por_estado.pendientes|default:0 }},
+                    {{ pedidos_por_estado.en_proceso|default:0 }},
+                    {{ pedidos_por_estado.completados|default:0 }}
+                ],
+
+                backgroundColor: [
+                    '#ffc107',
+                    '#0dcaf0',
+                    '#198754'
+                ],
+                borderWidth: 1SS
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.raw + ' pedidos';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico de eficiencia
+    const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+    const efficiencyChart = new Chart(efficiencyCtx, {
+        type: 'line',
+        data: {
+            labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+            datasets: [{
+                label: 'Eficiencia (%)',
+                data: [85, 88, 82, 90, 87, 80, 85],
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Botones para cambiar periodo del gráfico
+    document.querySelectorAll('[data-period]').forEach(button => {
+        button.addEventListener('click', function() {
+            // Remover clase active de todos los botones
+            document.querySelectorAll('[data-period]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Agregar clase active al botón clickeado
+            this.classList.add('active');
+            
+            // Aquí podrías cargar datos diferentes según el periodo
+            const period = this.getAttribute('data-period');
+            console.log('Cambiar a periodo:', period);
+            
+            // Ejemplo: actualizar el gráfico con datos del periodo seleccionado
+            // Esto requeriría una llamada AJAX para obtener datos del servidor
+        });
+    });
+    
+    // Actualizar datos automáticamente cada minuto
+    function updateDashboardData() {
+        fetch('{% url "api_estadisticas" %}')
+            .then(response => response.json())
+            .then(data => {
+                // Actualizar contadores si es necesario
+                console.log('Datos actualizados:', data);
+                
+                // Puedes actualizar elementos específicos aquí
+                // Ejemplo: document.querySelector('#some-counter').textContent = data.someValue;
+            });
+    }
+    
+    // Actualizar cada 60 segundos
+    setInterval(updateDashboardData, 60000);
+});
+</script>
+{% endblock %}

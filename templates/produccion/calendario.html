@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario - Taller Textil{% endblock %}
+{% block page_title %}Calendario de Producción{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h5>Semana del {{ semana_actual|date:"d/m/Y" }}</h5>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group" role="group">
+            <a href="?week={{ previous_week }}" class="btn btn-outline-primary">
+                <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+            <a href="?week={{ today }}" class="btn btn-outline-primary">Hoy</a>
+            <a href="?week={{ next_week }}" class="btn btn-outline-primary">
+                Siguiente <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr class="bg-light">
+                        <th width="14%" class="text-center">Día</th>
+                        <th width="14%" class="text-center">Lunes</th>
+                        <th width="14%" class="text-center">Martes</th>
+                        <th width="14%" class="text-center">Miércoles</th>
+                        <th width="14%" class="text-center">Jueves</th>
+                        <th width="14%" class="text-center">Viernes</th>
+                        <th width="14%" class="text-center">Sábado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="bg-light text-center align-middle">Fecha</td>
+                        {% for dia in dias_semana %}
+                        <td class="text-center {% if dia.fecha == hoy %}table-info{% endif %}">
+                            <div class="py-2">
+                                <h5 class="mb-0">{{ dia.fecha|date:"d" }}</h5>
+                                <small class="text-muted">{{ dia.nombre }}</small>
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="bg-light text-center align-middle">Órdenes</td>
+                        {% for dia in dias_semana %}
+                        <td class="{% if dia.fecha == hoy %}table-info{% endif %}">
+                            {% for orden_info in dia.ordenes %}
+                            <div class="card mb-2 border-{% if orden_info.prioridad == 4 %}danger{% elif orden_info.prioridad == 3 %}warning{% else %}primary{% endif %}">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title mb-1">{{ orden_info.orden.codigo }}</h6>
+                                    <p class="card-text small mb-1">
+                                        {{ orden_info.orden.pedido.cliente|truncatechars:15 }}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-{% if orden_info.turno == 'manana' %}info{% else %}secondary{% endif %}">
+                                            {{ orden_info.turno }}
+                                        </span>
+                                        <small class="text-muted">
+                                            {{ orden_info.orden.progreso }}%
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-3 text-muted">
+                                <i class="bi bi-inbox"></i>
+                                <p class="small mb-0">Sin órdenes</p>
+                            </div>
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Leyenda</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="mb-2">
+                            <span class="badge bg-danger me-2">Alta</span>
+                            <small>Prioridad Crítica</small>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-warning me-2">Media</span>
+                            <small>Prioridad Alta</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2">
+                            <span class="badge bg-primary me-2">Baja</span>
+                            <small>Prioridad Normal</small>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-info me-2">Mañana</span>
+                            <span class="badge bg-secondary me-2">Tarde</span>
+                            <small>Turnos</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Resumen Semanal</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center p-3">
+                            <h3 class="text-primary">{{ total_ordenes_semana }}</h3>
+                            <small class="text-muted">Órdenes programadas</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3">
+                            <h3 class="text-success">{{ ordenes_completadas_semana }}</h3>
+                            <small class="text-muted">Órdenes completadas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
