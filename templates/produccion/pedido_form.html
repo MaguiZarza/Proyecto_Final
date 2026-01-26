@@ -1,8 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %}{% if form.instance.pk %}Editar Pedido{% else %}Nuevo Pedido{% endif %} - Taller Textil{% endblock %}
-{% block page_title %}{% if form.instance.pk %}Editar Pedido{% else %}Nuevo Pedido{% endblock %}</h1>{% endblock %}
-
+{% block page_title %}{% if form.instance.pk %}Editar Pedido{% else %}Nuevo Pedido{% endif %}{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">

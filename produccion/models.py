@@ -21,6 +21,39 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
     
+    @classmethod
+    def crear_productos_predeterminados(cls):
+        """Crea los productos predeterminados para un taller textil"""
+        productos_data = [
+            # Productos literales como los pediste
+            {'nombre': 'remera', 'codigo': 'REM-001', 'costo_estimado': 1500, 'precio_venta': 3500},
+            {'nombre': 'pantalon', 'codigo': 'PAN-001', 'costo_estimado': 3500, 'precio_venta': 7500},
+            {'nombre': 'short', 'codigo': 'SHR-001', 'costo_estimado': 2000, 'precio_venta': 4500},
+            {'nombre': 'chomba', 'codigo': 'CHO-001', 'costo_estimado': 2800, 'precio_venta': 6500},
+            {'nombre': 'buzos', 'codigo': 'BUZ-001', 'costo_estimado': 4500, 'precio_venta': 9500},
+            {'nombre': 'manga largas', 'codigo': 'MAN-001', 'costo_estimado': 2200, 'precio_venta': 4800},
+            {'nombre': 'musculosas', 'codigo': 'MUS-001', 'costo_estimado': 1200, 'precio_venta': 2800},
+            {'nombre': 'bolsos', 'codigo': 'BOL-001', 'costo_estimado': 2800, 'precio_venta': 6500},
+            {'nombre': 'ropa de muñeca', 'codigo': 'ROM-001', 'costo_estimado': 800, 'precio_venta': 2000},
+            {'nombre': 'calzas', 'codigo': 'CAL-001', 'costo_estimado': 3000, 'precio_venta': 6800},
+            {'nombre': 'bikers', 'codigo': 'BIK-001', 'costo_estimado': 3200, 'precio_venta': 7200},
+        ]
+        
+        productos_creados = []
+        for data in productos_data:
+            # Verificar si el producto ya existe
+            if not cls.objects.filter(codigo=data['codigo']).exists():
+                producto = cls.objects.create(
+                    nombre=data['nombre'],
+                    codigo=data['codigo'],
+                    costo_estimado=data['costo_estimado'],
+                    precio_venta=data['precio_venta'],
+                    descripcion=f"Producto estándar de producción textil"
+                )
+                productos_creados.append(producto)
+        
+        return productos_creados
+    
     
 # ============ FUNCIONES AUXILIARES ============ #
 def generar_codigo_pedido():
@@ -38,6 +71,7 @@ def fecha_entrega_default():
 def fecha_programada_default():
     """Fecha programada por defecto (hoy)"""
     return datetime.now().date()
+
 
 # ============ MODELO PEDIDO ============ #
 class Pedido(models.Model):
@@ -92,6 +126,7 @@ class Pedido(models.Model):
     def es_urgente(self):
         return self.dias_restantes() <= 2 and self.estado != 'completado'
 
+
 # ============ MODELO MÉTODO PRODUCCIÓN ============ #
 class MetodoProduccion(models.Model):
     TIPO_CHOICES = [
@@ -135,6 +170,45 @@ class MetodoProduccion(models.Model):
     def costo_total_por_unidad(self):
         return self.costo_mano_obra + self.costo_maquinaria + self.costo_adicional
 
+    @classmethod
+    def crear_metodos_produccion_predeterminados(cls):
+        """Crea métodos de producción predeterminados"""
+        metodos_data = [
+            {
+                'nombre': 'Producción Estándar',
+                'codigo': 'MET-EST-001',
+                'tipo': 'estandar',
+                'descripcion': 'Método estándar para producción en serie',
+                'tiempo_preparacion': 45,
+                'tiempo_confeccion': 75,
+                'tiempo_acabado': 25,
+                'costo_mano_obra': 1200,
+                'costo_maquinaria': 800,
+                'costo_adicional': 200
+            },
+            {
+                'nombre': 'Producción Rápida',
+                'codigo': 'MET-RAP-001',
+                'tipo': 'rapido',
+                'descripcion': 'Método rápido para pedidos urgentes',
+                'tiempo_preparacion': 20,
+                'tiempo_confeccion': 45,
+                'tiempo_acabado': 15,
+                'costo_mano_obra': 1800,
+                'costo_maquinaria': 1200,
+                'costo_adicional': 500
+            },
+        ]
+        
+        metodos_creados = []
+        for data in metodos_data:
+            if not cls.objects.filter(codigo=data['codigo']).exists():
+                metodo = cls.objects.create(**data)
+                metodos_creados.append(metodo)
+        
+        return metodos_creados
+
+
 # ============ MODELO MÉTODO PROCESO ============ #
 class MetodoProceso(models.Model):
     metodo = models.ForeignKey(MetodoProduccion, on_delete=models.CASCADE)
@@ -151,6 +225,7 @@ class MetodoProceso(models.Model):
     def __str__(self):
         # return f"{self.metodo.nombre} - {self.proceso.nombre}"  # Comenta esto
         return f"{self.metodo.nombre} - Proceso en orden {self.orden}"  # Cambia esto
+
 
 # ============ MODELO ORDEN PRODUCCIÓN ============ #
 class OrdenProduccion(models.Model):
@@ -212,6 +287,7 @@ class OrdenProduccion(models.Model):
             self.progreso = 0
         self.save()
 
+
 # ============ MODELO PLANIFICACIÓN ============ #
 class Planificacion(models.Model):
     TIPO_CHOICES = [
@@ -261,6 +337,7 @@ class Planificacion(models.Model):
         completadas = ordenes.filter(estado='completada').count()
         return int((completadas / total) * 100) if total > 0 else 0
 
+
 # ============ MODELO PLANIFICACIÓN ORDEN ============ #
 class PlanificacionOrden(models.Model):
     planificacion = models.ForeignKey(Planificacion, on_delete=models.CASCADE)
@@ -281,6 +358,7 @@ class PlanificacionOrden(models.Model):
 
     def __str__(self):
         return f"{self.orden.codigo} - {self.fecha_asignada} ({self.get_turno_display()})"
+
 
 # ============ MODELO REPORTE PRODUCCIÓN ============ #
 class ReporteProduccion(models.Model):
@@ -331,3 +409,18 @@ class ReporteProduccion(models.Model):
         if self.total_pedidos > 0:
             return (self.pedidos_completados / self.total_pedidos) * 100
         return 0
+
+
+# ============ FUNCIÓN PARA CREAR DATOS PREDETERMINADOS ============ #
+def crear_datos_predeterminados():
+    """Función para crear todos los datos predeterminados"""
+    # Crear productos predeterminados
+    productos = Producto.crear_productos_predeterminados()
+    
+    # Crear métodos de producción predeterminados
+    metodos = MetodoProduccion.crear_metodos_produccion_predeterminados()
+    
+    return {
+        'productos_creados': len(productos),
+        'metodos_creados': len(metodos)
+    }

@@ -147,11 +147,7 @@
             
             <!-- Menú de navegación -->
             <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.path == '/' %}bg-secondary rounded{% endif %}" href="{% url 'dashboard' %}">
-                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                    </a>
-                </li>
+                
                 
                 <!-- Producción -->
                 <li class="nav-item mt-3">
@@ -162,18 +158,25 @@
                         <i class="bi bi-cart me-2"></i> Pedidos
                     </a>
                 </li>
+                <!-- Comentado temporalmente: Órdenes de Producción -->
+                <!--
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'ordenproduccion_list' %}">
                         <i class="bi bi-clipboard-check me-2"></i> Órdenes
                     </a>
                 </li>
+                -->
+                <!-- Comentado temporalmente: Planificación -->
+                
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'planificacion_list' %}">
                         <i class="bi bi-calendar-week me-2"></i> Planificación
                     </a>
                 </li>
                 
-                <!-- Lotes -->
+                
+                <!-- Sección de Lotes COMENTADA COMPLETA -->
+                <!--
                 <li class="nav-item mt-3">
                     <small class="text-uppercase text-muted">Lotes</small>
                 </li>
@@ -187,6 +190,7 @@
                         <i class="bi bi-list-ul me-2"></i> Lista de Lotes
                     </a>
                 </li>
+                -->
                 
                 <!-- Materiales -->
                 <li class="nav-item mt-3">
@@ -197,26 +201,30 @@
                         <i class="bi bi-boxes me-2"></i> Inventario
                     </a>
                 </li>
+                <!-- Alertas: Comentado del nav pero manteniendo la función -->
+                <!--
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'alertas_stock' %}">
                         <i class="bi bi-exclamation-triangle me-2"></i> Alertas
                     </a>
                 </li>
+                -->
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'calculadora_hilo' %}">
                         <i class="bi bi-calculator me-2"></i> Calculadoras
                     </a>
                 </li>
                 
-                <!-- Procesos -->
+                <!-- Sección de Procesos COMENTADA COMPLETA -->
+                
                 <li class="nav-item mt-3">
                     <small class="text-uppercase text-muted">Procesos</small>
                 </li>
-                <li class="nav-item">
+                <!--<li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'dashboard_procesos' %}">
                         <i class="bi bi-diagram-3 me-2"></i> Dashboard Procesos
                     </a>
-                </li>
+                </li>-->
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'panel_temporizador' %}">
                         <i class="bi bi-stopwatch me-2"></i> Temporizador
@@ -227,19 +235,38 @@
                         <i class="bi bi-clipboard-data me-2"></i> Control Calidad
                     </a>
                 </li>
+                <!---->
                 
                 <!-- Reportes -->
                 <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Reportes</small>
+                    <small class="text-uppercase text-muted">Estadísticas</small>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {% if request.path == '/' %}bg-secondary rounded{% endif %}" href="{% url 'dashboard' %}">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'reportes_produccion' %}">
                         <i class="bi bi-bar-chart me-2"></i> Reportes Producción
                     </a>
                 </li>
+                <!-- Comentado: Reportes de Lotes -->
+                <!--
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'reporte_estado_lotes' %}">
                         <i class="bi bi-pie-chart me-2"></i> Reportes Lotes
+                    </a>
+                </li>
+                -->
+                
+                <!-- Nueva sección: Configuración -->
+                <li class="nav-item mt-3">
+                    <small class="text-uppercase text-muted">Configuración</small>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{% url 'admin:index' %}" target="_blank">
+                        <i class="bi bi-gear me-2"></i> Administración
                     </a>
                 </li>
             </ul>
