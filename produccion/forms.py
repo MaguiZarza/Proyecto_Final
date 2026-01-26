@@ -4,6 +4,8 @@ from .models import Pedido, MetodoProduccion, OrdenProduccion, Planificacion, Re
 from .models import Producto
 import datetime
 
+## forms produccion
+
 class PedidoForm(forms.ModelForm):
     producto = forms.ModelChoiceField(
         queryset=Producto.objects.filter(activo=True),

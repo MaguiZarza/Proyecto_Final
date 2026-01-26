@@ -7,7 +7,7 @@ from .models import (
     ControlCalidadDetalle, NoConformidad
 )
 from materiales.models import Material
-
+## forms procesos
 # ============ FORMULARIOS DE PROCESOS ============ #
 class ProcesoForm(forms.ModelForm):
     class Meta:
@@ -83,12 +83,11 @@ class ProcesoFlujoForm(forms.ModelForm):
 class TemporizadorForm(forms.ModelForm):
     class Meta:
         model = Temporizador
-        fields = ['proceso', 'etapa', 'orden_produccion',
-                 'tiempo_objetivo', 'operario']
+        # Quita 'orden_produccion' de los fields ya que lo comentamos
+        fields = ['proceso', 'etapa', 'tiempo_objetivo', 'operario']
         widgets = {
             'proceso': forms.Select(attrs={'class': 'form-select'}),
             'etapa': forms.Select(attrs={'class': 'form-select'}),
-            'orden_produccion': forms.Select(attrs={'class': 'form-select'}),
             'tiempo_objetivo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM:SS'}),
             'operario': forms.Select(attrs={'class': 'form-select'}),
         }
@@ -110,14 +109,12 @@ class IniciarTemporizadorForm(forms.Form):
 class ControlCalidadForm(forms.ModelForm):
     class Meta:
         model = ControlCalidad
-        fields = ['proceso', 'etapa', 'orden_produccion', 'lote',
-                 'resultado', 'observaciones', 'recomendaciones',
+        # Quita 'orden_produccion' y 'lote' de los fields
+        fields = ['proceso', 'etapa', 'resultado', 'observaciones', 'recomendaciones',
                  'puntuacion_total', 'cantidad_defectos', 'costo_reparacion']
         widgets = {
             'proceso': forms.Select(attrs={'class': 'form-select'}),
             'etapa': forms.Select(attrs={'class': 'form-select'}),
-            'orden_produccion': forms.Select(attrs={'class': 'form-select'}),
-            'lote': forms.Select(attrs={'class': 'form-select'}),
             'resultado': forms.Select(attrs={'class': 'form-select'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'recomendaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -151,15 +148,14 @@ class NoConformidadForm(forms.ModelForm):
     
     class Meta:
         model = NoConformidad
-        fields = ['proceso', 'control_calidad', 'orden_produccion',
-                 'descripcion', 'prioridad', 'causa_raiz',
+        # Quita 'orden_produccion' de los fields
+        fields = ['proceso', 'control_calidad', 'descripcion', 'prioridad', 'causa_raiz',
                  'accion_correctiva', 'accion_preventiva',
                  'fecha_limite', 'responsable_correccion',
                  'cantidad_afectada', 'costo_estimado', 'impacto_produccion']
         widgets = {
             'proceso': forms.Select(attrs={'class': 'form-select'}),
             'control_calidad': forms.Select(attrs={'class': 'form-select'}),
-            'orden_produccion': forms.Select(attrs={'class': 'form-select'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'prioridad': forms.Select(attrs={'class': 'form-select'}),
             'causa_raiz': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),

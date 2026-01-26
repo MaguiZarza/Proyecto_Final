@@ -5,6 +5,8 @@ from decimal import Decimal
 import json
 from django.core.exceptions import ValidationError
 
+## models de Materiales
+
 # ============ MODELOS BASE (deben estar primero) ============ #
 class Material(models.Model):
     TIPO_CHOICES = [
@@ -27,6 +29,7 @@ class Material(models.Model):
         verbose_name_plural = 'Materiales'
 
 class Formula(models.Model):
+    # Usamos string para evitar dependencia circular
     producto = models.ForeignKey('produccion.Producto', on_delete=models.CASCADE, related_name='formulas')
     activa = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -75,7 +78,7 @@ class ConfiguracionMaquina(models.Model):
 class ConfiguracionHilo(models.Model):
     configuracion = models.ForeignKey(ConfiguracionMaquina, on_delete=models.CASCADE, related_name='hilos')
     hilo = models.ForeignKey(Hilo, on_delete=models.CASCADE, null=True, blank=True)
-    tension = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # Temporal
+    tension = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     
     def __str__(self):
         return f"{self.configuracion.nombre} - {self.hilo.nombre if self.hilo else 'Sin hilo'}"
@@ -167,8 +170,10 @@ class MovimientoInventario(models.Model):
     cantidad_actual = models.DecimalField(max_digits=12, decimal_places=3, default=0)
     
     referencia = models.CharField(max_length=100, blank=True, help_text="Nº Factura, Orden, etc.")
+    # Usamos string para evitar dependencia circular
     orden_produccion = models.ForeignKey('produccion.OrdenProduccion', on_delete=models.SET_NULL, null=True, blank=True)
-    lote = models.ForeignKey('lotes.Lote', on_delete=models.SET_NULL, null=True, blank=True)
+    # Comentamos temporalmente la referencia a lotes para evitar dependencia
+    lote = models.CharField(max_length=50, blank=True, null=True)
     
     costo_unitario = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     costo_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -292,6 +297,7 @@ class AlertaStock(models.Model):
 
 # ============ CONSUMO POR PRODUCTO ============ #
 class ConsumoProducto(models.Model):
+    # Usamos string para evitar dependencia circular
     producto = models.ForeignKey('produccion.Producto', on_delete=models.CASCADE, related_name='consumos')
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
     cantidad_por_unidad = models.DecimalField(max_digits=10, decimal_places=3)

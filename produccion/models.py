@@ -1,9 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
-# REMOVED: from materiales.models import Producto  # Esta línea causaba el error
-from procesos.models import Proceso
 import uuid
 from datetime import datetime, timedelta
+
+## Models de produccion
 
 # ============ MODELO PRODUCTO ============ #
 class Producto(models.Model):
@@ -61,7 +61,7 @@ class Pedido(models.Model):
     telefono = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     
-    producto = models.ForeignKey('Producto', on_delete=models.PROTECT)  # Cambiado a string reference
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
     cantidad = models.PositiveIntegerField()
     fecha_pedido = models.DateField(auto_now_add=True)
     fecha_entrega = models.DateField(default=fecha_entrega_default)
@@ -117,7 +117,7 @@ class MetodoProduccion(models.Model):
     costo_adicional = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     # Configuración
-    procesos = models.ManyToManyField('procesos.Proceso', through='MetodoProceso', blank=True)  # Cambiado a string reference
+    # NOTA: La relación con procesos se manejará después para evitar dependencia circular
     instrucciones = models.TextField(blank=True)
     imagen_referencia = models.ImageField(upload_to='metodos/', blank=True, null=True)
     activo = models.BooleanField(default=True)
@@ -138,17 +138,19 @@ class MetodoProduccion(models.Model):
 # ============ MODELO MÉTODO PROCESO ============ #
 class MetodoProceso(models.Model):
     metodo = models.ForeignKey(MetodoProduccion, on_delete=models.CASCADE)
-    proceso = models.ForeignKey('procesos.Proceso', on_delete=models.CASCADE)  # Cambiado a string reference
+    # Comenta esto temporalmente:
+    # proceso = models.ForeignKey('procesos.Proceso', on_delete=models.CASCADE)
     orden = models.PositiveIntegerField(default=0)
     tiempo_estimado = models.PositiveIntegerField(default=0, help_text="Tiempo en minutos")
     responsable = models.CharField(max_length=100, blank=True)
 
     class Meta:
         ordering = ['orden']
-        unique_together = ['metodo', 'proceso']
+        # unique_together = ['metodo', 'proceso']  # Comenta esto también
 
     def __str__(self):
-        return f"{self.metodo.nombre} - {self.proceso.nombre}"
+        # return f"{self.metodo.nombre} - {self.proceso.nombre}"  # Comenta esto
+        return f"{self.metodo.nombre} - Proceso en orden {self.orden}"  # Cambia esto
 
 # ============ MODELO ORDEN PRODUCCIÓN ============ #
 class OrdenProduccion(models.Model):
@@ -183,6 +185,9 @@ class OrdenProduccion(models.Model):
     cantidad_producida = models.PositiveIntegerField(default=0)
     observaciones = models.TextField(blank=True)
     incidencias = models.TextField(blank=True)
+    
+    # Añadir campo activo si es necesario
+    activo = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-fecha_creacion']
@@ -221,6 +226,7 @@ class Planificacion(models.Model):
     fecha_fin = models.DateField()
     
     # Relaciones
+    # Usamos string para evitar dependencia circular
     ordenes = models.ManyToManyField(OrdenProduccion, through='PlanificacionOrden', blank=True)
     responsables = models.ManyToManyField(User, related_name='planificaciones', blank=True)
     

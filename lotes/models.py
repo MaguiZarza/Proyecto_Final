@@ -6,6 +6,8 @@ from django.db.models import Sum, F, Q
 from decimal import Decimal
 import uuid
 
+## Models de lotes
+
 # ============ MODELOS DE LOTE ============ #
 class Lote(models.Model):
     ESTADO_CHOICES = [
@@ -31,7 +33,7 @@ class Lote(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True)
     
-    # Relaciones
+    # Relaciones - Usamos strings para evitar dependencias circulares
     orden_produccion = models.ForeignKey(
         'produccion.OrdenProduccion', 
         on_delete=models.SET_NULL, 
@@ -186,18 +188,21 @@ class Lote(models.Model):
 
     def calcular_costos(self):
         """Calcula costos estimados y reales"""
-        # Calcular costo de materiales
-        costo_materiales = MaterialLote.objects.filter(lote=self).aggregate(
-            total=Sum(F('cantidad_usada') * F('costo_unitario'))
-        )['total'] or 0
-        
-        self.costo_real = Decimal(str(costo_materiales))
-        
-        # Actualizar margen
-        if self.precio_venta_estimado > 0:
-            self.margen_estimado = ((self.precio_venta_estimado - self.costo_real) / self.precio_venta_estimado) * 100
-        
-        self.save()
+        try:
+            # Calcular costo de materiales
+            costo_materiales = MaterialLote.objects.filter(lote=self).aggregate(
+                total=Sum(F('cantidad_usada') * F('costo_unitario'))
+            )['total'] or 0
+            
+            self.costo_real = Decimal(str(costo_materiales))
+            
+            # Actualizar margen
+            if self.precio_venta_estimado > 0:
+                self.margen_estimado = ((self.precio_venta_estimado - self.costo_real) / self.precio_venta_estimado) * 100
+            
+            self.save()
+        except Exception as e:
+            print(f"Error calculando costos: {e}")
 
     def iniciar_produccion(self):
         """Inicia la producción del lote"""
@@ -256,7 +261,8 @@ class Lote(models.Model):
         else:
             self.resultado_control_calidad = 'parcial'
         
-        self.observaciones += f"\nRechazo: {motivo}"
+        if motivo:
+            self.observaciones += f"\nRechazo: {motivo}"
         self.save()
         
         # Registrar trazabilidad
@@ -270,6 +276,7 @@ class Lote(models.Model):
 # ============ MATERIALES POR LOTE ============ #
 class MaterialLote(models.Model):
     lote = models.ForeignKey(Lote, on_delete=models.CASCADE, related_name='materiales_detalle')
+    # Usamos string para evitar dependencia circular
     material = models.ForeignKey('materiales.Material', on_delete=models.CASCADE)
     
     # Cantidades
@@ -323,13 +330,23 @@ class MaterialLote(models.Model):
         """Registra devolución de material no utilizado"""
         if cantidad <= self.cantidad_disponible():
             self.cantidad_devolucion += cantidad
-            self.observaciones = f"{self.observaciones}\nDevolución: {cantidad} - {motivo}"
-            self.save()
             
             # Actualizar inventario del material
-            self.material.cantidad_disponible += cantidad
-            self.material.save()
+            from materiales.models import Inventario
+            try:
+                inventario = Inventario.objects.get(material=self.material)
+                inventario.cantidad_actual += cantidad
+                inventario.save()
+            except Inventario.DoesNotExist:
+                # Si no hay inventario, crear uno
+                Inventario.objects.create(
+                    material=self.material,
+                    cantidad_actual=cantidad,
+                    cantidad_minima=0,
+                    cantidad_maxima=1000
+                )
             
+            self.save()
             return True
         return False
 

@@ -4,6 +4,8 @@ from .models import ConsumoTela, Inventario, MovimientoInventario, AlertaStock, 
 from datetime import datetime, timedelta
 from produccion.models import Producto
 
+## forms de materiales
+
 # ============ FORMULARIOS EXISTENTES ============ #
 class CalculadoraHiloForm(forms.Form):
     consumo = forms.ModelChoiceField(

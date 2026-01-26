@@ -5,6 +5,8 @@ from materiales.models import Material
 from produccion.models import Producto, OrdenProduccion
 from django.contrib.auth.models import User
 
+# forms de lotes 
+
 # ============ FORMULARIOS DE LOTE ============ #
 class LoteForm(forms.ModelForm):
     fecha_inicio_planeada = forms.DateTimeField(
@@ -42,7 +44,8 @@ class LoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Filtrar productos activos
         self.fields['producto'].queryset = Producto.objects.filter(activo=True)
-        self.fields['orden_produccion'].queryset = OrdenProduccion.objects.filter(activo=True)
+        # OrdenProduccion NO tiene campo 'activo', solo filtramos por estado no cancelado
+        self.fields['orden_produccion'].queryset = OrdenProduccion.objects.exclude(estado='cancelada')
         # Filtrar usuarios activos
         self.fields['responsable'].queryset = User.objects.filter(is_active=True)
         self.fields['supervisor'].queryset = User.objects.filter(is_active=True)
