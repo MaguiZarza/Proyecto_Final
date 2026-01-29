@@ -5,6 +5,23 @@ from datetime import datetime, timedelta
 
 ## Models de produccion
 
+# ============ FUNCIONES AUXILIARES ============ #
+def generar_codigo_pedido():
+    """Genera un código único para pedidos"""
+    return f"PED-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+
+def generar_codigo_orden():
+    """Genera un código único para órdenes de producción"""
+    return f"OP-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+
+def fecha_entrega_default():
+    """Fecha de entrega por defecto (7 días a partir de hoy)"""
+    return datetime.now().date() + timedelta(days=7)
+
+def fecha_programada_default():
+    """Fecha programada por defecto (hoy)"""
+    return datetime.now().date()
+
 # ============ MODELO PRODUCTO ============ #
 class Producto(models.Model):
     nombre = models.CharField(max_length=100)
@@ -53,40 +70,21 @@ class Producto(models.Model):
                 productos_creados.append(producto)
         
         return productos_creados
-    
-    
-# ============ FUNCIONES AUXILIARES ============ #
-def generar_codigo_pedido():
-    """Genera un código único para pedidos"""
-    return f"PED-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
-
-def generar_codigo_orden():
-    """Genera un código único para órdenes de producción"""
-    return f"OP-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
-
-def fecha_entrega_default():
-    """Fecha de entrega por defecto (7 días a partir de hoy)"""
-    return datetime.now().date() + timedelta(days=7)
-
-def fecha_programada_default():
-    """Fecha programada por defecto (hoy)"""
-    return datetime.now().date()
-
 
 # ============ MODELO PEDIDO ============ #
 class Pedido(models.Model):
     ESTADO_CHOICES = [
-        ('pendiente', '🟡 Pendiente'),
-        ('en_proceso', '🟠 En Proceso'),
-        ('completado', '🟢 Completado'),
-        ('cancelado', '🔴 Cancelado'),
+        ('pendiente', ' Pendiente'),
+        ('en_proceso', ' En Proceso'),
+        ('completado', ' Completado'),
+        ('cancelado', ' Cancelado'),
     ]
     
     PRIORIDAD_CHOICES = [
-        (1, '🔵 Baja'),
-        (2, '🟡 Media'),
-        (3, '🔴 Alta'),
-        (4, '⚠️ Urgente'),
+        (1, ' Baja'),
+        (2, ' Media'),
+        (3, ' Alta'),
+        (4, ' Urgente'),
     ]
 
     codigo = models.CharField(max_length=50, unique=True, default=generar_codigo_pedido)
@@ -130,10 +128,10 @@ class Pedido(models.Model):
 # ============ MODELO MÉTODO PRODUCCIÓN ============ #
 class MetodoProduccion(models.Model):
     TIPO_CHOICES = [
-        ('estandar', '⚙️ Estándar'),
-        ('personalizado', '🎨 Personalizado'),
-        ('rapido', '⚡ Rápido'),
-        ('premium', '👑 Premium'),
+        ('estandar', ' Estándar'),
+        ('personalizado', ' Personalizado'),
+        ('rapido', ' Rápido'),
+        ('premium', ' Premium'),
     ]
 
     nombre = models.CharField(max_length=100)
@@ -230,14 +228,14 @@ class MetodoProceso(models.Model):
 # ============ MODELO ORDEN PRODUCCIÓN ============ #
 class OrdenProduccion(models.Model):
     ESTADO_CHOICES = [
-        ('programada', '📅 Programada'),
-        ('en_proceso', '⚙️ En Proceso'),
-        ('pausada', '⏸️ Pausada'),
-        ('completada', '✅ Completada'),
-        ('cancelada', '❌ Cancelada'),
+        ('programada', ' Programada'),
+        ('en_proceso', ' En Proceso'),
+        ('pausada', ' Pausada'),
+        ('completada', ' Completada'),
+        ('cancelada', ' Cancelada'),
     ]
 
-    codigo = models.CharField(max_length=50, unique=True, default=generar_codigo_orden)
+    codigo = models.CharField(max_length=50, blank=True)
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='ordenes_produccion')
     metodo = models.ForeignKey(MetodoProduccion, on_delete=models.PROTECT)
     
@@ -287,13 +285,27 @@ class OrdenProduccion(models.Model):
             self.progreso = 0
         self.save()
 
+    def save(self, *args, **kwargs):
+        # Si no tiene código, usar el código del pedido con sufijo para múltiples órdenes
+        if not self.codigo and self.pedido:
+            # Contar cuántas órdenes ya tiene este pedido (incluyendo esta si ya existe)
+            ordenes_existentes = OrdenProduccion.objects.filter(pedido=self.pedido).exclude(id=self.id).count()
+            
+            if ordenes_existentes == 0:
+                # Primera orden para este pedido
+                self.codigo = self.pedido.codigo
+            else:
+                # Órdenes subsiguientes
+                self.codigo = f"{self.pedido.codigo}-{ordenes_existentes + 1:02d}"
+        
+        super().save(*args, **kwargs)
 
 # ============ MODELO PLANIFICACIÓN ============ #
 class Planificacion(models.Model):
     TIPO_CHOICES = [
-        ('semanal', '📅 Semanal'),
-        ('mensual', '📆 Mensual'),
-        ('diaria', '📋 Diaria'),
+        ('semanal', ' Semanal'),
+        ('mensual', ' Mensual'),
+        ('diaria', ' Diaria'),
     ]
 
     nombre = models.CharField(max_length=100)
@@ -344,9 +356,9 @@ class PlanificacionOrden(models.Model):
     orden = models.ForeignKey(OrdenProduccion, on_delete=models.CASCADE)
     fecha_asignada = models.DateField()
     turno = models.CharField(max_length=20, choices=[
-        ('manana', '🌅 Mañana'),
-        ('tarde', '🌞 Tarde'),
-        ('noche', '🌙 Noche'),
+        ('manana', ' Mañana'),
+        ('tarde', ' Tarde'),
+        ('noche', ' Noche'),
     ], default='manana')
     
     prioridad = models.IntegerField(default=1)
@@ -363,11 +375,11 @@ class PlanificacionOrden(models.Model):
 # ============ MODELO REPORTE PRODUCCIÓN ============ #
 class ReporteProduccion(models.Model):
     TIPO_CHOICES = [
-        ('diario', '📊 Diario'),
-        ('semanal', '📈 Semanal'),
-        ('mensual', '📉 Mensual'),
-        ('anual', '📋 Anual'),
-        ('especial', '🎯 Especial'),
+        ('diario', ' Diario'),
+        ('semanal', ' Semanal'),
+        ('mensual', ' Mensual'),
+        ('anual', ' Anual'),
+        ('especial', ' Especial'),
     ]
 
     titulo = models.CharField(max_length=200)

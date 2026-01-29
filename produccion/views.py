@@ -5,12 +5,12 @@ from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.http import JsonResponse, HttpResponse
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 import csv
 from django.contrib.auth.models import User
-from .models import Pedido, MetodoProduccion, OrdenProduccion, Planificacion, ReporteProduccion
+from .models import Pedido, MetodoProduccion, OrdenProduccion, Planificacion, ReporteProduccion, PlanificacionOrden
 from .forms import PedidoForm, OrdenProduccionForm, PlanificacionForm, FiltroReporteForm, AvanceProduccionForm
 from procesos.models import Operacion
 
@@ -241,6 +241,7 @@ def crear_orden_produccion(request, pedido_id=None):
             orden = form.save(commit=False)
             if pedido:
                 orden.pedido = pedido
+            
             orden.save()
             form.save_m2m()  # Guardar relación muchos-a-muchos (equipo)
             
@@ -265,6 +266,28 @@ def crear_orden_produccion(request, pedido_id=None):
         'form': form,
         'pedido': pedido
     })
+
+@login_required
+def orden_produccion_detail(request, pk):
+    """Vista para ver el detalle de una orden de producción"""
+    orden = get_object_or_404(OrdenProduccion.objects.select_related(
+        'pedido', 'metodo', 'supervisor'
+    ), pk=pk)
+    
+    # Formulario para actualizar avance
+    avance_form = AvanceProduccionForm()
+    
+    # Obtener el equipo asignado
+    equipo = orden.equipo.all()
+    
+    context = {
+        'orden': orden,
+        'avance_form': avance_form,
+        'equipo': equipo,
+        'estados': OrdenProduccion.ESTADO_CHOICES,
+    }
+    
+    return render(request, 'produccion/ordenproduccion_detail.html', context)
 
 @login_required
 def actualizar_avance(request, pk):
@@ -425,7 +448,7 @@ def generar_planificacion_semanal(request):
         )
         
         # Asignar pedidos a la planificación
-        for i, pedido in enumerate(pedidos_pendientes[:20]):  # Máximo 20 pedidos por semana
+        for i, pedido in enumerate(pedidos_pendientes[:40]):  # Máximo 20 pedidos por semana
             # Crear orden de producción si no existe
             orden, created = OrdenProduccion.objects.get_or_create(
                 pedido=pedido,
@@ -587,6 +610,7 @@ def exportar_reporte_csv(request, pk):
     writer.writerow(['Costo Mano de Obra', f'${reporte.costo_mano_obra}'])
     
     return response
+
 
 # ============ API/JSON PARA GRÁFICOS ============ #
 @login_required
