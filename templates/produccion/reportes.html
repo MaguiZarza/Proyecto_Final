@@ -8,40 +8,40 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="mb-0">Generar Reporte</h6>
+                <h6 class="mb-0">Generar Reporte Personalizado</h6>
             </div>
             <div class="card-body">
                 <form method="get">
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de Reporte</label>
-                        <select name="tipo" class="form-select">
-                            <option value="">Seleccionar tipo</option>
-                            <option value="diario">Diario</option>
-                            <option value="semanal">Semanal</option>
-                            <option value="mensual">Mensual</option>
-                            <option value="personalizado">Personalizado</option>
-                        </select>
-                    </div>
+                    <!-- Campo oculto para indicar que se debe generar -->
+                    <input type="hidden" name="generar" value="true">
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Fecha desde</label>
-                            <input type="date" name="fecha_desde" class="form-control">
+                            {{ form.fecha_desde }}
+                            {% if form.fecha_desde.errors %}
+                                <div class="text-danger small">{{ form.fecha_desde.errors }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha hasta</label>
-                            <input type="date" name="fecha_hasta" class="form-control">
+                            {{ form.fecha_hasta }}
+                            {% if form.fecha_hasta.errors %}
+                                <div class="text-danger small">{{ form.fecha_hasta.errors }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-file-earmark-text me-2"></i> Generar Reporte
-                    </button>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-file-earmark-text me-2"></i> Generar Reporte
+                        </button>
+                    </div>
                 </form>
                 
                 <hr class="my-4">
                 
-                <h6 class="mb-3">Reportes Rápidos</h6>
+                <h6 class="mb-3">Reportes Automáticos</h6>
                 <div class="d-grid gap-2">
                     <a href="{% url 'generar_reporte_rapido' %}?tipo=diario" class="btn btn-outline-primary">
                         <i class="bi bi-calendar-day me-2"></i> Reporte Diario
@@ -51,6 +51,9 @@
                     </a>
                     <a href="{% url 'generar_reporte_rapido' %}?tipo=mensual" class="btn btn-outline-primary">
                         <i class="bi bi-calendar-month me-2"></i> Reporte Mensual
+                    </a>
+                    <a href="{% url 'generar_reporte_rapido' %}?tipo=anual" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-month me-2"></i> Reporte Anual
                     </a>
                 </div>
             </div>
@@ -91,18 +94,65 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Reportes Generados</h6>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-funnel"></i> Filtrar
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="?">Todos</a></li>
-                        <li><a class="dropdown-item" href="?tipo=diario">Diarios</a></li>
-                        <li><a class="dropdown-item" href="?tipo=semanal">Semanales</a></li>
-                        <li><a class="dropdown-item" href="?tipo=mensual">Mensuales</a></li>
-                    </ul>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i>
+                            {% if filtro_tipo %}
+                                {% if filtro_tipo == 'diario' %}Diarios
+                                {% elif filtro_tipo == 'semanal' %}Semanales
+                                {% elif filtro_tipo == 'mensual' %}Mensuales
+                                {% elif filtro_tipo == 'anual' %}Anuales
+                                {% elif filtro_tipo == 'especial' %}Especiales
+                                {% else %}{{ filtro_tipo|title }}
+                                {% endif %}
+                            {% else %}
+                                Filtrar por tipo
+                            {% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item {% if not filtro_tipo %}active{% endif %}" href="?">
+                                    <i class="bi bi-list-check me-2"></i> Todos los reportes
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Tipo de reporte</h6></li>
+                            <li>
+                                <a class="dropdown-item {% if filtro_tipo == 'diario' %}active{% endif %}" href="?tipo=diario">
+                                    <i class="bi bi-calendar-day me-2"></i> Diarios
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if filtro_tipo == 'semanal' %}active{% endif %}" href="?tipo=semanal">
+                                    <i class="bi bi-calendar-week me-2"></i> Semanales
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if filtro_tipo == 'mensual' %}active{% endif %}" href="?tipo=mensual">
+                                    <i class="bi bi-calendar-month me-2"></i> Mensuales
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if filtro_tipo == 'anual' %}active{% endif %}" href="?tipo=anual">
+                                    <i class="bi bi-calendar me-2"></i> Anuales
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if filtro_tipo == 'especial' %}active{% endif %}" href="?tipo=especial">
+                                    <i class="bi bi-star me-2"></i> Especiales
+                                </a>
+                            </li>
+                            {% if filtro_tipo %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="?">
+                                    <i class="bi bi-x-circle me-2"></i> Limpiar filtro
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
                 </div>
-            </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">

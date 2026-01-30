@@ -19,8 +19,8 @@ urlpatterns = [
     # Órdenes de Producción
     path('ordenes-produccion/', OrdenProduccionListView.as_view(), name='ordenproduccion_list'),
     path('ordenes-produccion/nueva/', views.crear_orden_produccion, name='ordenproduccion_create'),
-    path('ordenes-produccion/nueva/<int:pedido_id>/', views.crear_orden_produccion, name='ordenproduccion_create_from_pedido'),
-    path('ordenes-produccion/<int:pk>/', views.PedidoDetailView.as_view(), name='ordenproduccion_detail'),  # Reutilizar vista
+    # ELIMINAR o CORREGIR: path('ordenes-produccion/nueva/<int:pedido_id>/', views.crear_orden_produccion, name='ordenproduccion_create_from_pedido'),
+    path('ordenes-produccion/<int:pk>/', views.orden_produccion_detail, name='ordenproduccion_detail'),  # NUEVA VISTA
     path('ordenes-produccion/<int:pk>/avance/', views.actualizar_avance, name='actualizar_avance'),
     path('ordenes-produccion/<int:pk>/cambiar-estado/', views.cambiar_estado_orden, name='cambiar_estado_orden'),
     

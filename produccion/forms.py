@@ -80,28 +80,16 @@ class PlanificacionForm(forms.ModelForm):
             'objetivos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
-class FiltroReporteForm(forms.Form):
-    TIPO_CHOICES = [
-        ('', 'Todos'),
-        ('diario', 'Diario'),
-        ('semanal', 'Semanal'),
-        ('mensual', 'Mensual'),
-        ('anual', 'Anual'),
-    ]
-    
-    tipo = forms.ChoiceField(
-        choices=TIPO_CHOICES,
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    
+class FiltroReporteForm(forms.Form):    
     fecha_desde = forms.DateField(
         required=False,
+        label='Fecha desde',
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     
     fecha_hasta = forms.DateField(
         required=False,
+        label='Fecha hasta',
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     
