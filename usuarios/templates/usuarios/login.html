@@ -547,18 +547,25 @@
                                         {% csrf_token %}
                                         
                                         <div class="mb-3">
-                                            <label for="id_username" class="form-label">Usuario</label>
+                                            <label for="id_username" class="form-label">Correo Electrónico</label>
                                             <div class="input-group">
                                                 <span class="input-group-text">
-                                                    <i class="bi bi-person-fill"></i>
+                                                    <!-- Cambia el icono de persona por email -->
+                                                    <i class="bi bi-envelope-fill"></i>
                                                 </span>
-                                                <input type="text" 
-                                                       name="username" 
-                                                       id="id_username" 
-                                                       class="form-control" 
-                                                       placeholder="Usuario o correo electrónico"
-                                                       required
-                                                       autofocus>
+                                                <!-- IMPORTANTE: type="email" en lugar de type="text" -->
+                                                <input type="email" 
+                                                    name="username"  
+                                                    id="id_username" 
+                                                    class="form-control" 
+                                                    placeholder="ejemplo@tallertextil.com"
+                                                    required
+                                                    autofocus
+                                                    autocomplete="email">  
+                                            </div>
+                                            <!-- Añade este texto de ayuda -->
+                                            <div class="form-text" style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">
+                                                Ingresa el correo electrónico con el que te registraste
                                             </div>
                                         </div>
                                         

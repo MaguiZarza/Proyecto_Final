@@ -4,7 +4,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import Profile
 import re
-
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import authenticate
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError
 class CustomUserCreationForm(UserCreationForm):
     # Campos para el usuario
     first_name = forms.CharField(
@@ -149,3 +153,90 @@ class CustomUserCreationForm(UserCreationForm):
             profile.save()
         
         return user
+
+class EmailAuthenticationForm(AuthenticationForm):
+    """
+    Formulario que permite iniciar sesión solo con correo electrónico.
+    Reemplaza el campo 'username' por 'email'.
+    """
+    
+    # Cambiamos el campo username para que sea email
+    username = forms.EmailField(
+        label="Correo Electrónico",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'tuemail@tallertextil.com',
+            'autocomplete': 'email'
+        }),
+        help_text="Ingresa tu correo electrónico registrado"
+    )
+    
+    # Cambiamos el label del campo password
+    password = forms.CharField(
+        label="Contraseña",
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'current-password',
+            'class': 'form-control',
+            'placeholder': 'Tu contraseña'
+        }),
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Cambiar el label para mayor claridad
+        self.fields['username'].label = "Correo Electrónico"
+        self.fields['password'].label = "Contraseña"
+    
+    def clean(self):
+        # Obtener el email (que está en el campo 'username')
+        email = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+        
+        if email and password:
+            try:
+                # Buscar el usuario por email
+                user_by_email = User.objects.get(email__iexact=email)
+                
+                # Intentar autenticar con el username real del usuario
+                user = authenticate(
+                    request=self.request,
+                    username=user_by_email.username,
+                    password=password
+                )
+                
+                if user is None:
+                    # Si la contraseña es incorrecta
+                    raise ValidationError(
+                        "Correo electrónico o contraseña incorrectos."
+                    )
+                
+                # Si todo está bien, actualizamos el cleaned_data
+                self.cleaned_data['username'] = user.username
+                self.user_cache = user
+                
+            except User.DoesNotExist:
+                # Si no existe usuario con ese email
+                raise ValidationError(
+                    "No existe una cuenta con este correo electrónico. "
+                    "Regístrate primero."
+                )
+            except User.MultipleObjectsReturned:
+                # En caso improbable de emails duplicados
+                users = User.objects.filter(email__iexact=email)
+                for user_obj in users:
+                    user = authenticate(
+                        request=self.request,
+                        username=user_obj.username,
+                        password=password
+                    )
+                    if user is not None:
+                        self.cleaned_data['username'] = user.username
+                        self.user_cache = user
+                        break
+                else:
+                    raise ValidationError(
+                        "Correo electrónico o contraseña incorrectos."
+                    )
+        
+        return self.cleaned_data
