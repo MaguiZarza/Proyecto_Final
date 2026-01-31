@@ -9,7 +9,7 @@ urlpatterns = [
     #apps
     path('materiales/', include('materiales.urls')),
     path('procesos/', include('procesos.urls')),
-    path('lotes/', include('lotes.urls')),
+    # path('lotes/', include('lotes.urls')),  # ¡ELIMINADA!
     path('usuarios/', include('usuarios.urls')),
     path('', include('produccion.urls')),  # dashboard principal
 

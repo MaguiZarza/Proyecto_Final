@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'produccion',
     'materiales',
     'procesos',
-    'lotes',
+    #'lotes',
     'usuarios',
 ]
 
