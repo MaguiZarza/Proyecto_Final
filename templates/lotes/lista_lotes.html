@@ -1,0 +1,227 @@
+<!-- templates/lotes/lista_lotes.html -->
+{% extends 'base.html' %}
+
+{% block title %}Lista de Lotes - Taller Textil{% endblock %}
+{% block page_title %}Gestión de Lotes{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <select name="estado" class="form-select">
+                    <option value="">Todos los estados</option>
+                    {% for estado in form.estado.field.choices %}
+                        <option value="{{ estado.0 }}" {% if form.estado.value == estado.0 %}selected{% endif %}>
+                            {{ estado.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="prioridad" class="form-select">
+                    <option value="">Todas las prioridades</option>
+                    {% for prioridad in form.prioridad.field.choices %}
+                        <option value="{{ prioridad.0 }}" {% if form.prioridad.value == prioridad.0 %}selected{% endif %}>
+                            {{ prioridad.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Buscar lote..." value="{{ request.GET.search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'crear_lote' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i> Nuevo Lote
+        </a>
+        <a href="{% url 'exportar_lotes_csv' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-download me-2"></i> Exportar
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas de la lista -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Total Lotes</h6>
+                        <small class="text-muted">Filtrados</small>
+                    </div>
+                    <h3 class="mb-0">{{ total_lotes }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Objetivo Total</h6>
+                        <small class="text-muted">Unidades</small>
+                    </div>
+                    <h3 class="mb-0">{{ cantidad_total.total_objetivo|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Producido</h6>
+                        <small class="text-muted">Unidades</small>
+                    </div>
+                    <h3 class="mb-0">{{ cantidad_total.total_producido|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Aprobado</h6>
+                        <small class="text-muted">Unidades</small>
+                    </div>
+                    <h3 class="mb-0">{{ cantidad_total.total_aprobado|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th>Responsable</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lote in page_obj %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold">{{ lote.codigo }}</span>
+                        </td>
+                        <td>{{ lote.nombre|truncatechars:20 }}</td>
+                        <td>
+                            {% if lote.producto %}
+                                {{ lote.producto.nombre|truncatechars:20 }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ lote.cantidad_producida }}/{{ lote.cantidad_objetivo }}
+                            <div class="progress progress-bar-custom mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: {% widthratio lote.cantidad_producida lote.cantidad_objetivo 100 %}%"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ lote.estado }}">
+                                {{ lote.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="priority-badge priority-{{ lote.prioridad }}"></span>
+                            {{ lote.get_prioridad_display }}
+                        </td>
+                        <td>
+                            {% if lote.responsable %}
+                                {{ lote.responsable.username|truncatechars:15 }}
+                            {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'detalle_lote' pk=lote.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'editar_lote' pk=lote.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if lote.estado == 'planeado' %}
+                                <a href="{% url 'iniciar_produccion_lote' lote_id=lote.pk %}" class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-play-circle"></i>
+                                </a>
+                                {% elif lote.estado == 'en_produccion' %}
+                                <a href="{% url 'finalizar_produccion_lote' lote_id=lote.pk %}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-check-circle"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            No hay lotes que coincidan con los filtros
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="text-muted">
+                    Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} lotes
+                </span>
+            </div>
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav>
+                <ul class="pagination mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

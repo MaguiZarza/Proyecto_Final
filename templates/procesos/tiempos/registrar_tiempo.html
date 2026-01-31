@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Tiempo Manual | Sistema de Gestión de Taller{% endblock %}
+
+{% block page_title %}Registrar Tiempo Manual{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Card de registro -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Registro Manual de Tiempo
+                    </h5>
+                    <a href="{% url 'lista_tiempos' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Volver a la lista
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Por favor, corrige los errores en el formulario.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row g-4">
+                        <!-- Nombre del operario -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.nombre_usuario.id_for_label }}" class="form-label fw-medium">
+                                    <i class="bi bi-person me-1"></i>Nombre del operario
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="bi bi-person-badge"></i>
+                                    </span>
+                                    {{ form.nombre_usuario }}
+                                </div>
+                                {% if form.nombre_usuario.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.nombre_usuario.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Ingresa el nombre completo del operario
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Prenda realizada -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.prenda.id_for_label }}" class="form-label fw-medium">
+                                    <i class="bi bi-shop me-1"></i>Prenda realizada
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="bi bi-tshirt"></i>
+                                    </span>
+                                    {{ form.prenda }}
+                                </div>
+                                {% if form.prenda.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.prenda.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Ej: Camisa manga larga, Pantalón, etc.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Tiempo empleado -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.tiempo.id_for_label }}" class="form-label fw-medium">
+                                    <i class="bi bi-clock me-1"></i>Tiempo empleado (HH:MM:SS)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="bi bi-hourglass-split"></i>
+                                    </span>
+                                    {{ form.tiempo }}
+                                </div>
+                                {% if form.tiempo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.tiempo.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Formato: HH:MM:SS, ejemplo: 00:30:00 para 30 minutos
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Descripción -->
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-medium">
+                                    <i class="bi bi-card-text me-1"></i>Descripción
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="bi bi-pencil"></i>
+                                    </span>
+                                    {{ form.descripcion }}
+                                </div>
+                                {% if form.descripcion.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.descripcion.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Describe la actividad realizada durante este tiempo
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Ejemplos de tiempos -->
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-info-circle fs-5"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="alert-heading mb-2">Ejemplos de formato de tiempo:</h6>
+                                        <div class="row">
+                                            <div class="col-md-3 mb-2">
+                                                <strong>30 minutos:</strong> 00:30:00
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <strong>1 hora 15 min:</strong> 01:15:00
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <strong>2 horas 45 min:</strong> 02:45:00
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <strong>8 horas:</strong> 08:00:00
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botones -->
+                        <div class="col-12 mt-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <button type="submit" class="btn btn-primary px-4 py-2">
+                                        <i class="bi bi-check-circle me-2"></i>Guardar Tiempo
+                                    </button>
+                                    <button type="reset" class="btn btn-outline-secondary ms-2 py-2">
+                                        <i class="bi bi-eraser me-2"></i>Limpiar
+                                    </button>
+                                </div>
+                                <a href="{% url 'lista_tiempos' %}" class="text-decoration-none text-muted">
+                                    <i class="bi bi-arrow-left me-1"></i>← Volver a la lista
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Card de información -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-light py-3">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Información Importante
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-lightbulb text-warning fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="fw-medium">Recomendaciones</h6>
+                                <p class="small text-muted mb-0">
+                                    • Registra los tiempos inmediatamente después de completar la tarea<br>
+                                    • Sé específico en la descripción de la actividad<br>
+                                    • Usa el formato correcto para el tiempo (HH:MM:SS)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-shield-check text-success fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="fw-medium">Beneficios</h6>
+                                <p class="small text-muted mb-0">
+                                    • Mejor seguimiento de la productividad<br>
+                                    • Análisis preciso de tiempos por proceso<br>
+                                    • Optimización de recursos y planificación
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-select {
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s;
+        height: 45px;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        min-width: 45px;
+        justify-content: center;
+    }
+    
+    .form-label {
+        color: #2c3e50;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .invalid-feedback {
+        font-size: 0.875em;
+        color: #e74c3c;
+        margin-top: 0.25rem;
+    }
+    
+    .form-text {
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+        color: #6c757d;
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+        height: auto !important;
+    }
+    
+    .alert-info {
+        background-color: rgba(13, 110, 253, 0.1);
+        border-color: rgba(13, 110, 253, 0.2);
+    }
+    
+    .btn-primary {
+        background-color: #3498db;
+        border-color: #3498db;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+</style>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Agregar clases de Bootstrap a los inputs
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            if (!input.classList.contains('form-control')) {
+                input.classList.add('form-control');
+            }
+            
+            // Si hay errores, agregar clase is-invalid
+            if (input.classList.contains('error')) {
+                input.classList.add('is-invalid');
+            }
+        });
+        
+        // Asignar placeholder por defecto si está vacío
+        const tiempoInput = document.getElementById('{{ form.tiempo.id_for_label }}');
+        if (tiempoInput && !tiempoInput.value) {
+            tiempoInput.placeholder = '00:30:00';
+        }
+        
+        // Asignar placeholder a la descripción
+        const descInput = document.getElementById('{{ form.descripcion.id_for_label }}');
+        if (descInput && !descInput.placeholder) {
+            descInput.placeholder = 'Ej: Corte de tela, Costura de mangas, Planchado, etc.';
+        }
+        
+        // Validación en tiempo real del formato de tiempo
+        if (tiempoInput) {
+            tiempoInput.addEventListener('blur', function() {
+                const value = this.value.trim();
+                const timeRegex = /^([0-9]{1,2}):([0-5][0-9]):([0-5][0-9])$/;
+                
+                if (value && !timeRegex.test(value)) {
+                    this.classList.add('is-invalid');
+                    // Crear mensaje de error si no existe
+                    if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'invalid-feedback d-block';
+                        errorDiv.innerHTML = '<i class="bi bi-x-circle me-1"></i>Formato incorrecto. Use HH:MM:SS';
+                        this.parentNode.insertBefore(errorDiv, this.nextSibling);
+                    }
+                } else {
+                    this.classList.remove('is-invalid');
+                    // Remover mensaje de error si existe
+                    const errorDiv = this.nextElementSibling;
+                    if (errorDiv && errorDiv.classList.contains('invalid-feedback')) {
+                        errorDiv.remove();
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

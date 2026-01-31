@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes - Taller Textil{% endblock %}
+{% block page_title %}Reportes de Producción{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Generar Reporte</h6>
+            </div>
+            <div class="card-body">
+                <form method="get">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Reporte</label>
+                        <select name="tipo" class="form-select">
+                            <option value="">Seleccionar tipo</option>
+                            <option value="diario">Diario</option>
+                            <option value="semanal">Semanal</option>
+                            <option value="mensual">Mensual</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha desde</label>
+                            <input type="date" name="fecha_desde" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha hasta</label>
+                            <input type="date" name="fecha_hasta" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-text me-2"></i> Generar Reporte
+                    </button>
+                </form>
+                
+                <hr class="my-4">
+                
+                <h6 class="mb-3">Reportes Rápidos</h6>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'generar_reporte_rapido' %}?tipo=diario" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-day me-2"></i> Reporte Diario
+                    </a>
+                    <a href="{% url 'generar_reporte_rapido' %}?tipo=semanal" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-week me-2"></i> Reporte Semanal
+                    </a>
+                    <a href="{% url 'generar_reporte_rapido' %}?tipo=mensual" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-month me-2"></i> Reporte Mensual
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Estadísticas del Mes</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="small text-muted">Pedidos Totales</h6>
+                    <h3 class="mb-0">{{ pedidos_mes.total|default:0 }}</h3>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Pedidos Completados</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">{{ pedidos_mes.completados|default:0 }}</h4>
+                        <span class="badge bg-success">{{ tasa_completacion|floatformat:1 }}%</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Pedidos en Proceso</h6>
+                    <h4 class="mb-0">{{ pedidos_mes.en_proceso|default:0 }}</h4>
+                </div>
+                
+                <div class="progress progress-bar-custom mb-3">
+                    <div class="progress-bar bg-success" style="width: {{ tasa_completacion }}%"></div>
+                </div>
+                <small class="text-muted">Tasa de completación del mes actual</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Reportes Generados</h6>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="?">Todos</a></li>
+                        <li><a class="dropdown-item" href="?tipo=diario">Diarios</a></li>
+                        <li><a class="dropdown-item" href="?tipo=semanal">Semanales</a></li>
+                        <li><a class="dropdown-item" href="?tipo=mensual">Mensuales</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Tipo</th>
+                                <th>Periodo</th>
+                                <th>Generado por</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reporte in reportes %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ reporte.titulo|truncatechars:30 }}</div>
+                                    <small class="text-muted">{{ reporte.fecha_generacion|date:"d/m/Y H:i" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if reporte.tipo == 'diario' %}info{% elif reporte.tipo == 'semanal' %}primary{% else %}success{% endif %}">
+                                        {{ reporte.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ reporte.periodo_inicio|date:"d/m/y" }} - {{ reporte.periodo_fin|date:"d/m/y" }}
+                                </td>
+                                <td>{{ reporte.generado_por.username }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'exportar_reporte_csv' pk=reporte.pk %}" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-printer"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="bi bi-file-earmark-text display-1 text-muted"></i>
+                                    <h5 class="mt-3">No hay reportes</h5>
+                                    <p class="text-muted">Genera tu primer reporte</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico de reportes -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Producción Mensual</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de producción mensual
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyChart = new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+            datasets: [{
+                label: 'Pedidos Completados',
+                data: [12, 19, 15, 17],
+                backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                borderColor: '#198754',
+                borderWidth: 1
+            }, {
+                label: 'Pedidos Pendientes',
+                data: [5, 8, 6, 9],
+                backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                borderColor: '#ffc107',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 5
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

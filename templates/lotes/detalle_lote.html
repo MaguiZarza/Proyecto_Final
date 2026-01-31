@@ -1,0 +1,313 @@
+<!-- templates/lotes/detalle_lote.html -->
+{% extends 'base.html' %}
+
+{% block title %}Lote {{ lote.codigo }} - Taller Textil{% endblock %}
+{% block page_title %}Lote: {{ lote.codigo }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Información principal -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Información del Lote</h6>
+                <span class="status-badge status-{{ lote.estado }}">
+                    {{ lote.get_estado_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">Código:</th>
+                                <td>{{ lote.codigo }}</td>
+                            </tr>
+                            <tr>
+                                <th>Nombre:</th>
+                                <td>{{ lote.nombre }}</td>
+                            </tr>
+                            <tr>
+                                <th>Producto:</th>
+                                <td>
+                                    {% if lote.producto %}
+                                        {{ lote.producto.nombre }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Cantidad:</th>
+                                <td>{{ lote.cantidad_producida }}/{{ lote.cantidad_objetivo }} unidades</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">Prioridad:</th>
+                                <td>
+                                    <span class="priority-badge priority-{{ lote.prioridad }}"></span>
+                                    {{ lote.get_prioridad_display }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Responsable:</th>
+                                <td>{{ lote.responsable.username|default:"Sin asignar" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Supervisor:</th>
+                                <td>{{ lote.supervisor.username|default:"Sin asignar" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Creado por:</th>
+                                <td>{{ lote.creado_por.username }} el {{ lote.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Progreso -->
+                <div class="mt-4">
+                    <h6 class="mb-3">Progreso de Producción</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Progreso General</span>
+                                    <span>{{ progreso.progreso_general|floatformat:1 }}%</span>
+                                </div>
+                                <div class="progress progress-bar-custom" style="height: 20px;">
+                                    <div class="progress-bar bg-success" style="width: {{ progreso.progreso_general }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Calidad</span>
+                                    <span>{{ progreso.tasa_calidad|floatformat:1 }}%</span>
+                                </div>
+                                <div class="progress progress-bar-custom" style="height: 20px;">
+                                    <div class="progress-bar bg-info" style="width: {{ progreso.tasa_calidad }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if lote.especificaciones %}
+                <div class="mb-3">
+                    <h6>Especificaciones:</h6>
+                    <p class="mb-0">{{ lote.especificaciones|linebreaks }}</p>
+                </div>
+                {% endif %}
+                
+                {% if lote.observaciones %}
+                <div class="mb-3">
+                    <h6>Observaciones:</h6>
+                    <p class="mb-0">{{ lote.observaciones|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Materiales del lote -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Materiales Asignados</h6>
+                <a href="{% url 'agregar_material_lote' lote_id=lote.id %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Agregar Material
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Material</th>
+                                <th>Cantidad</th>
+                                <th>Costo Unitario</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for material in materiales %}
+                            <tr>
+                                <td>{{ material.material.nombre }}</td>
+                                <td>{{ material.cantidad_asignada }} {{ material.material.unidad }}</td>
+                                <td>${{ material.costo_unitario|floatformat:2 }}</td>
+                                <td>${{ material.costo_total|floatformat:2 }}</td>
+                                <td>
+                                    {% if material.entregado %}
+                                    <span class="badge bg-success">Entregado</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not material.entregado %}
+                                    <a href="{% url 'entregar_material' lote_id=lote.id material_id=material.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-check-circle"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    No hay materiales asignados a este lote
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td><strong>${{ costo_materiales|floatformat:2 }}</strong></td>
+                                <td colspan="2">
+                                    <small class="text-muted">{{ porcentaje_entregado|floatformat:1 }}% entregado</small>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar derecha -->
+    <div class="col-md-4">
+        <!-- Acciones -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Acciones</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'editar_lote' pk=lote.pk %}" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil me-2"></i> Editar Lote
+                    </a>
+                    
+                    {% if lote.estado == 'planeado' %}
+                    <a href="{% url 'iniciar_produccion_lote' lote_id=lote.pk %}" class="btn btn-warning">
+                        <i class="bi bi-play-circle me-2"></i> Iniciar Producción
+                    </a>
+                    {% elif lote.estado == 'en_produccion' %}
+                    <a href="{% url 'finalizar_produccion_lote' lote_id=lote.pk %}" class="btn btn-success">
+                        <i class="bi bi-check-circle me-2"></i> Finalizar Producción
+                    </a>
+                    {% elif lote.estado == 'control_calidad' %}
+                    <a href="{% url 'aprobar_control_calidad' lote_id=lote.pk %}" class="btn btn-success">
+                        <i class="bi bi-check-circle me-2"></i> Aprobar Calidad
+                    </a>
+                    <a href="{% url 'rechazar_lote' lote_id=lote.pk %}" class="btn btn-danger">
+                        <i class="bi bi-x-circle me-2"></i> Rechazar
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'materiales_lote' lote_id=lote.pk %}" class="btn btn-outline-success">
+                        <i class="bi bi-box-seam me-2"></i> Gestionar Materiales
+                    </a>
+                    
+                    <a href="{% url 'trazabilidad_lote' lote_id=lote.pk %}" class="btn btn-outline-info">
+                        <i class="bi bi-clock-history me-2"></i> Ver Trazabilidad
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estadísticas -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Estadísticas</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="small text-muted">Tiempo Transcurrido:</h6>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-clock me-2"></i>
+                        <span>{{ tiempo_transcurrido }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Tiempo Restante Estimado:</h6>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-alarm me-2"></i>
+                        <span>{{ tiempo_restante }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Costos:</h6>
+                    <div class="small">
+                        <div class="d-flex justify-content-between">
+                            <span>Materiales:</span>
+                            <span>${{ costo_materiales|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Estimado:</span>
+                            <span>${{ lote.costo_estimado|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Real:</span>
+                            <span>${{ lote.costo_real|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="small text-muted">Margen Estimado:</h6>
+                    <div class="d-flex align-items-center">
+                        {% if lote.margen_estimado > 20 %}
+                        <span class="badge bg-success me-2">{{ lote.margen_estimado|floatformat:1 }}%</span>
+                        {% elif lote.margen_estimado > 10 %}
+                        <span class="badge bg-warning text-dark me-2">{{ lote.margen_estimado|floatformat:1 }}%</span>
+                        {% else %}
+                        <span class="badge bg-danger me-2">{{ lote.margen_estimado|floatformat:1 }}%</span>
+                        {% endif %}
+                        <small class="text-muted">de rentabilidad</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trazabilidad reciente -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Trazabilidad Reciente</h6>
+            </div>
+            <div class="card-body">
+                {% for evento in trazabilidad %}
+                <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <h6 class="mb-0 small">{{ evento.get_etapa_display }}</h6>
+                            <small class="text-muted">{{ evento.fecha|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <span class="badge bg-{% if evento.tipo_evento == 'creacion' %}primary{% elif evento.tipo_evento == 'modificacion' %}warning{% else %}info{% endif %}">
+                            {{ evento.get_tipo_evento_display }}
+                        </span>
+                    </div>
+                    <p class="mb-0 small">{{ evento.observaciones|truncatechars:50 }}</p>
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-clock-history fs-1"></i>
+                    <p class="mt-2">No hay eventos de trazabilidad</p>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'trazabilidad_lote' lote_id=lote.pk %}" class="btn btn-sm btn-outline-info w-100">
+                    Ver toda la trazabilidad
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

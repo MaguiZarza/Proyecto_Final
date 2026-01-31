@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">📦 Calculadora de Materiales</h1>
+    
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    Seleccionar Producto
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.producto.label }}</label>
+                            {{ form.producto }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.cantidad.label }}</label>
+                            {{ form.cantidad }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Calcular Materiales</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            {% if resultados %}
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    📋 Lista de Materiales Requeridos
+                </div>
+                <div class="card-body">
+                    <h5>Producto: {{ producto.nombre }}</h5>
+                    <p><strong>Cantidad a producir:</strong> {{ cantidad }} unidades</p>
+                    
+                    <hr>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Cantidad por unidad</th>
+                                    <th>Total requerido</th>
+                                    <th>Unidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in resultados %}
+                                <tr>
+                                    <td>{{ item.material }}</td>
+                                    <td>
+                                        {% with formula.detalles.all as detalles %}
+                                            {% for detalle in detalles %}
+                                                {% if detalle.material.nombre == item.material %}
+                                                    {{ detalle.cantidad_por_unidad }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </td>
+                                    <td><strong>{{ item.cantidad }}</strong></td>
+                                    <td>{{ item.unidad }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'calculadora_materiales' %}" class="btn btn-secondary">Nuevo Cálculo</a>
+                        <button class="btn btn-info" onclick="window.print()">🖨️ Imprimir Lista</button>
+                    </div>
+                </div>
+            </div>
+            {% elif producto and not resultados %}
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    ⚠️ Información
+                </div>
+                <div class="card-body">
+                    <p>No se encontró una fórmula activa para el producto <strong>{{ producto.nombre }}</strong>.</p>
+                    <p>Por favor, verifique en el panel de administración:</p>
+                    <ol>
+                        <li>Que el producto tenga una fórmula asociada</li>
+                        <li>Que la fórmula esté marcada como "activa"</li>
+                        <li>Que la fórmula tenga materiales asignados</li>
+                    </ol>
+                    <a href="/admin/materiales/formula/" class="btn btn-warning">Ir a Fórmulas</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-header">
+                    ℹ️ Instrucciones
+                </div>
+                <div class="card-body">
+                    <p>Seleccione un producto y la cantidad que desea producir.</p>
+                    <p>El sistema calculará automáticamente:</p>
+                    <ul>
+                        <li>Cantidad total de cada material requerido</li>
+                        <li>Basado en la fórmula del producto</li>
+                        <li>Considerando el rendimiento por unidad</li>
+                    </ul>
+                    <p class="text-muted">Nota: Asegúrese de que el producto tenga una fórmula configurada.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
