@@ -84,6 +84,8 @@
                             {% endif %}
                         </div>
                         
+                        <!-- Campo para estado SI está en el formulario, sino eliminarlo -->
+                        {% if form.estado %}
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.estado.id_for_label }}" class="form-label">Estado *</label>
                             {{ form.estado }}
@@ -95,6 +97,7 @@
                             </div>
                             {% endif %}
                         </div>
+                        {% endif %}
                     </div>
                     
                     <div class="mb-3">

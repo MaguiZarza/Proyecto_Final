@@ -57,6 +57,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'taller.urls'
 
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -126,3 +130,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTHENTICATION_BACKENDS = [
+    'usuarios.backends.EmailBackend',  # Tu backend personalizado para email
+    'django.contrib.auth.backends.ModelBackend',  # Backend por defecto (para admin)
+]
+
+# También asegúrate de que tienes estas configuraciones:
+LOGIN_URL = 'login'  # URL para redirigir cuando se requiere login
+LOGIN_REDIRECT_URL = 'dashboard'  # URL después de login exitoso
+LOGOUT_REDIRECT_URL = 'login'  # URL después de logout

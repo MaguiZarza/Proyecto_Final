@@ -5,12 +5,12 @@ from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.http import JsonResponse, HttpResponse
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 import csv
 from django.contrib.auth.models import User
-from .models import Pedido, MetodoProduccion, OrdenProduccion, Planificacion, ReporteProduccion
+from .models import Pedido, MetodoProduccion, OrdenProduccion, Planificacion, ReporteProduccion, PlanificacionOrden
 from .forms import PedidoForm, OrdenProduccionForm, PlanificacionForm, FiltroReporteForm, AvanceProduccionForm
 from procesos.models import Operacion
 
@@ -241,6 +241,7 @@ def crear_orden_produccion(request, pedido_id=None):
             orden = form.save(commit=False)
             if pedido:
                 orden.pedido = pedido
+            
             orden.save()
             form.save_m2m()  # Guardar relación muchos-a-muchos (equipo)
             
@@ -265,6 +266,28 @@ def crear_orden_produccion(request, pedido_id=None):
         'form': form,
         'pedido': pedido
     })
+
+@login_required
+def orden_produccion_detail(request, pk):
+    """Vista para ver el detalle de una orden de producción"""
+    orden = get_object_or_404(OrdenProduccion.objects.select_related(
+        'pedido', 'metodo', 'supervisor'
+    ), pk=pk)
+    
+    # Formulario para actualizar avance
+    avance_form = AvanceProduccionForm()
+    
+    # Obtener el equipo asignado
+    equipo = orden.equipo.all()
+    
+    context = {
+        'orden': orden,
+        'avance_form': avance_form,
+        'equipo': equipo,
+        'estados': OrdenProduccion.ESTADO_CHOICES,
+    }
+    
+    return render(request, 'produccion/ordenproduccion_detail.html', context)
 
 @login_required
 def actualizar_avance(request, pk):
@@ -425,7 +448,7 @@ def generar_planificacion_semanal(request):
         )
         
         # Asignar pedidos a la planificación
-        for i, pedido in enumerate(pedidos_pendientes[:20]):  # Máximo 20 pedidos por semana
+        for i, pedido in enumerate(pedidos_pendientes[:40]):  # Máximo 20 pedidos por semana
             # Crear orden de producción si no existe
             orden, created = OrdenProduccion.objects.get_or_create(
                 pedido=pedido,
@@ -470,22 +493,31 @@ def reportes_produccion(request):
     form = FiltroReporteForm(request.GET or None)
     reportes = ReporteProduccion.objects.all()
     
+    # Variable para controlar si se debe generar un nuevo reporte
+    generar_nuevo = 'generar' in request.GET
+
+    # Obtener parámetros de filtro de la URL
+    filtro_tipo = request.GET.get('tipo', '')
+
+    if filtro_tipo:
+        reportes = reportes.filter(tipo=filtro_tipo)
+
     if form.is_valid():
-        tipo = form.cleaned_data.get('tipo')
         fecha_desde = form.cleaned_data.get('fecha_desde')
         fecha_hasta = form.cleaned_data.get('fecha_hasta')
         
-        if tipo:
-            reportes = reportes.filter(tipo=tipo)
         if fecha_desde:
             reportes = reportes.filter(periodo_inicio__gte=fecha_desde)
         if fecha_hasta:
             reportes = reportes.filter(periodo_fin__lte=fecha_hasta)
     
+    # Si se hizo clic en "Generar Reporte" y hay fechas
+        if generar_nuevo and fecha_desde and fecha_hasta:
+            return generar_reporte_personalizado(request, fecha_desde, fecha_hasta)
     # Estadísticas para mostrar
     hoy = timezone.now().date()
     mes_actual = hoy.replace(day=1)
-    
+
     pedidos_mes = Pedido.objects.filter(
         fecha_creacion__gte=mes_actual
     ).aggregate(
@@ -508,6 +540,62 @@ def reportes_produccion(request):
     }
     return render(request, 'produccion/reportes.html', context)
 
+def generar_reporte_personalizado(request, fecha_desde, fecha_hasta):
+    """Genera un reporte personalizado basado en fechas específicas"""
+    # Calcular días entre fechas para determinar tipo
+    dias_diferencia = (fecha_hasta - fecha_desde).days + 1
+    
+    if dias_diferencia == 1:
+        tipo = 'diario'
+    elif dias_diferencia <= 7:
+        tipo = 'semanal'
+    elif dias_diferencia <= 31:
+        tipo = 'mensual'
+    elif dias_diferencia <= 365:
+        tipo = 'anual'
+    else:
+        tipo = 'especial'
+
+    # Obtener pedidos en el rango de fechas
+    pedidos = Pedido.objects.filter(fecha_creacion__date__range=[fecha_desde, fecha_hasta])
+    
+    # Calcular métricas
+    total_pedidos = pedidos.count()
+    pedidos_completados = pedidos.filter(estado='completado').count()
+    pedidos_pendientes = pedidos.filter(estado__in=['pendiente', 'en_proceso']).count()
+
+    # Título personalizado
+    if dias_diferencia == 1:
+        titulo = f'Reporte Diario - {fecha_desde.strftime("%d/%m/%Y")}'
+    elif dias_diferencia <= 7:
+        titulo = f'Reporte Semanal - {fecha_desde.strftime("%d/%m")} al {fecha_hasta.strftime("%d/%m/%Y")}'
+    elif dias_diferencia <= 31:
+        titulo = f'Reporte Mensual - {fecha_desde.strftime("%B %Y")}'
+    else:
+        titulo = f'Reporte Personalizado - {fecha_desde.strftime("%d/%m/%Y")} al {fecha_hasta.strftime("%d/%m/%Y")}'
+    
+    # Crear reporte en base de datos
+    reporte = ReporteProduccion.objects.create(
+        titulo=titulo,
+        tipo=tipo,
+        periodo_inicio=fecha_desde,
+        periodo_fin=fecha_hasta,
+        total_pedidos=total_pedidos,
+        pedidos_completados=pedidos_completados,
+        pedidos_pendientes=pedidos_pendientes,
+        generado_por=request.user,
+        resumen=f'Reporte {tipo} del período {fecha_desde.strftime("%d/%m/%Y")} al {fecha_hasta.strftime("%d/%m/%Y")}. Total pedidos: {total_pedidos}, Completados: {pedidos_completados}.'
+    )
+    
+    Operacion.objects.create(
+        usuario=request.user,
+        accion='reporte_generado',
+        descripcion=f'Generó reporte {tipo}: {titulo}'
+    )
+    
+    messages.success(request, f'Reporte {tipo} generado exitosamente.')
+    return redirect('reportes_produccion')
+
 @login_required
 def generar_reporte_rapido(request):
     # Generar reporte rápido del día/semana/mes
@@ -526,10 +614,17 @@ def generar_reporte_rapido(request):
         periodo_inicio = lunes
         periodo_fin = domingo
         pedidos = Pedido.objects.filter(fecha_creacion__date__range=[lunes, domingo])
-    else:  # mensual
+    elif tipo == 'mensual':
         primer_dia = hoy.replace(day=1)
         ultimo_dia = (primer_dia + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         titulo = f'Reporte Mensual {primer_dia.strftime("%B %Y")}'
+        periodo_inicio = primer_dia
+        periodo_fin = ultimo_dia
+        pedidos = Pedido.objects.filter(fecha_creacion__date__range=[primer_dia, ultimo_dia])
+    elif tipo == 'anual':
+        primer_dia = hoy.replace(month=1, day=1)  # 1 de enero
+        ultimo_dia = hoy.replace(month=12, day=31)  # 31 de diciembre
+        titulo = f'Reporte Anual {hoy.year}'
         periodo_inicio = primer_dia
         periodo_fin = ultimo_dia
         pedidos = Pedido.objects.filter(fecha_creacion__date__range=[primer_dia, ultimo_dia])
@@ -587,6 +682,7 @@ def exportar_reporte_csv(request, pk):
     writer.writerow(['Costo Mano de Obra', f'${reporte.costo_mano_obra}'])
     
     return response
+
 
 # ============ API/JSON PARA GRÁFICOS ============ #
 @login_required
