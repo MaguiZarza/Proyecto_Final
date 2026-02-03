@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from .models import ConsumoTela, Inventario, MovimientoInventario, AlertaStock, PedidoCompra
+from .models import ConsumoTela, Inventario, MovimientoInventario, AlertaStock, PedidoCompra, Hilo, Tela, Material
 from datetime import datetime, timedelta
 from produccion.models import Producto
 
@@ -193,4 +193,74 @@ class GenerarReporteForm(forms.Form):
     
     fecha_fin = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+
+
+# forms.py - Agrega estos formularios
+class MaterialConColorForm(forms.ModelForm):
+    class Meta:
+        model = Material
+        fields = ['nombre', 'tipo', 'color', 'codigo_color', 'unidad', 'activo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Tela Jersey'}),
+            'tipo': forms.Select(attrs={'class': 'form-select'}),
+            'color': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Azul marino'}),
+            'codigo_color': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: AZM-001'}),
+            'unidad': forms.Select(choices=[
+                ('metro', 'Metro'),
+                ('conos', 'Conos'),
+                ('rollos', 'Rollos'),
+                ('unidad', 'Unidad'),
+                ('kg', 'Kilogramo'),
+                ('mts', 'Metros')
+            ], attrs={'class': 'form-select'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class TelaForm(forms.ModelForm):
+    class Meta:
+        model = Tela
+        fields = ['nombre', 'color', 'codigo_color', 'tipo_tela', 'ancho']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'color': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo_color': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo_tela': forms.TextInput(attrs={'class': 'form-control'}),
+            'ancho': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }
+
+class HiloForm(forms.ModelForm):
+    class Meta:
+        model = Hilo
+        fields = ['nombre', 'tipo', 'color', 'codigo_color', 'metros_por_cono']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo': forms.TextInput(attrs={'class': 'form-control'}),
+            'color': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo_color': forms.TextInput(attrs={'class': 'form-control'}),
+            'metros_por_cono': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }
+
+class AjusteCantidadForm(forms.Form):
+    tipo_movimiento = forms.ChoiceField(
+        choices=[
+            ('entrada', '➕ Entrada (Agregar stock)'),
+            ('salida', '➖ Salida (Retirar stock)'),
+            ('ajuste', '📝 Ajuste (Corregir cantidad)'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    cantidad = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+    )
+    motivo = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Ej: Compra nueva, Producción, Corrección, etc.'})
+    )
+    costo_unitario = forms.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Solo para entradas'})
     )

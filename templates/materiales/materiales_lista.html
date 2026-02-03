@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-palette"></i> Materiales con Colores</h2>
+        <div>
+            <a href="{% url 'material_crear' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nuevo Material
+            </a>
+            <a href="{% url 'inventario_lista' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-boxes"></i> Ver Inventario
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos los tipos</option>
+                        <option value="tela" {% if tipo_seleccionado == 'tela' %}selected{% endif %}>Tela</option>
+                        <option value="hilo" {% if tipo_seleccionado == 'hilo' %}selected{% endif %}>Hilo</option>
+                        <option value="avios" {% if tipo_seleccionado == 'avios' %}selected{% endif %}>Avíos</option>
+                        <option value="otro" {% if tipo_seleccionado == 'otro' %}selected{% endif %}>Otro</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Color</label>
+                    <select name="color" class="form-select">
+                        <option value="">Todos los colores</option>
+                        {% for color in colores %}
+                            {% if color %}
+                                <option value="{{ color }}" {% if color_seleccionado == color %}selected{% endif %}>
+                                    {{ color }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                    <a href="{% url 'materiales_lista' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        {% for stat in estadisticas %}
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted">{{ stat.tipo|title }}</h6>
+                            <h3>{{ stat.total }}</h3>
+                            <small>{{ stat.colores_distintos }} colores distintos</small>
+                        </div>
+                        <div class="stat-icon text-primary">
+                            {% if stat.tipo == 'tela' %}
+                                <i class="bi bi-textarea-t"></i>
+                            {% elif stat.tipo == 'hilo' %}
+                                <i class="bi bi-threads"></i>
+                            {% elif stat.tipo == 'avios' %}
+                                <i class="bi bi-tools"></i>
+                            {% else %}
+                                <i class="bi bi-box"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No hay materiales registrados. <a href="{% url 'material_crear' %}">Crea el primero</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Tabla de materiales -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Tipo</th>
+                            <th>Color</th>
+                            <th>Código Color</th>
+                            <th>Stock Actual</th>
+                            <th>Unidad</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for material in materiales %}
+                            {% with inventario=material.inventarios.first %}
+                            <tr>
+                                <td>
+                                    <strong>{{ material.nombre }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if material.tipo == 'tela' %}info{% elif material.tipo == 'hilo' %}warning{% elif material.tipo == 'avios' %}success{% else %}secondary{% endif %}">
+                                        {{ material.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if material.color %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="color-circle me-2" 
+                                                 style="background-color: {{ material.color }}; 
+                                                        width: 20px; height: 20px; 
+                                                        border-radius: 50%; border: 1px solid #ddd;">
+                                            </div>
+                                            {{ material.color }}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">Sin color</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if material.codigo_color %}
+                                        <code>{{ material.codigo_color }}</code>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if inventario %}
+                                        <div class="d-flex align-items-center">
+                                            <strong class="me-2">{{ inventario.cantidad_actual|floatformat:2 }}</strong>
+                                            {% if inventario.necesita_reabastecimiento %}
+                                                <span class="badge bg-danger">Bajo stock</span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">Sin inventario</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ material.unidad }}</td>
+                                <td>
+                                    {% if material.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'material_detalle' material.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'ajustar_cantidad' material.pk %}" 
+                                           class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-1"></i><br>
+                                    No hay materiales registrados
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.color-circle {
+    display: inline-block;
+    border-radius: 50%;
+}
+</style>
+{% endblock %}

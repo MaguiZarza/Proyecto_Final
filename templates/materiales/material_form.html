@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Nuevo Material
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre *</label>
+                                {{ form.nombre }}
+                                {% if form.nombre.errors %}
+                                    <div class="text-danger">{{ form.nombre.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo *</label>
+                                {{ form.tipo }}
+                                {% if form.tipo.errors %}
+                                    <div class="text-danger">{{ form.tipo.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Color</label>
+                                {{ form.color }}
+                                <div class="form-text">Ej: Azul marino, Rojo, Blanco, etc.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Código de Color</label>
+                                {{ form.codigo_color }}
+                                <div class="form-text">Ej: AZM-001, ROJ-102, etc.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Unidad de Medida *</label>
+                                {{ form.unidad }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <div class="form-check form-switch mt-2">
+                                    {{ form.activo }}
+                                    <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                        Activo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'materiales_lista' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Material
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información</h5>
+                </div>
+                <div class="card-body">
+                    <p>Al crear un material, automáticamente se creará un registro de inventario inicial con:</p>
+                    <ul>
+                        <li><strong>Stock inicial:</strong> 0 unidades</li>
+                        <li><strong>Stock mínimo:</strong> 10 unidades</li>
+                        <li><strong>Stock máximo:</strong> 1000 unidades</li>
+                        <li><strong>Ubicación:</strong> Almacén Principal</li>
+                    </ul>
+                    <p class="mb-0">Puedes ajustar estos valores después en la página de detalle del material.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-generar código de color basado en el nombre del color
+document.getElementById('id_color').addEventListener('input', function() {
+    const colorInput = this.value.trim();
+    const codigoInput = document.getElementById('id_codigo_color');
+    
+    if (colorInput && !codigoInput.value) {
+        // Generar un código simple (primeras 3 letras en mayúscula)
+        const code = colorInput.substring(0, 3).toUpperCase().replace(/\s/g, '');
+        if (code.length >= 2) {
+            codigoInput.value = code + '-001';
+        }
+    }
+});
+</script>
+{% endblock %}

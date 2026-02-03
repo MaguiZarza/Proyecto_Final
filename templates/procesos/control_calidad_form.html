@@ -1,0 +1,163 @@
+<!-- templates/procesos/control_calidad_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nuevo Control de Calidad{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mt-4">
+                <i class="bi bi-clipboard-plus me-2"></i>Nuevo Control de Calidad
+            </h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard_procesos' %}">Procesos</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'lista_controles_calidad' %}">Control de Calidad</a></li>
+                <li class="breadcrumb-item active">Nuevo</li>
+            </ol>
+        </div>
+        <a href="{% url 'lista_controles_calidad' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-clipboard-check me-1"></i>
+                    Información del Control
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> Por favor corrige los errores a continuación.
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.proceso.id_for_label }}" class="form-label">
+                                    Proceso
+                                </label>
+                                {{ form.proceso }}
+                                {% if form.proceso.errors %}
+                                <div class="text-danger">{{ form.proceso.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.orden_produccion.id_for_label }}" class="form-label">
+                                    Lote/Orden
+                                </label>
+                                {{ form.orden_produccion }}
+                                {% if form.orden_produccion.errors %}
+                                <div class="text-danger">{{ form.orden_produccion.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">Opcional: Asociar a un lote específico</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.resultado.id_for_label }}" class="form-label">
+                                    Resultado
+                                </label>
+                                {{ form.resultado }}
+                                {% if form.resultado.errors %}
+                                <div class="text-danger">{{ form.resultado.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.costo_reparacion.id_for_label }}" class="form-label">
+                                    Costo de Reparación ($)
+                                </label>
+                                {{ form.costo_reparacion }}
+                                {% if form.costo_reparacion.errors %}
+                                <div class="text-danger">{{ form.costo_reparacion.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                Observaciones
+                            </label>
+                            {{ form.observaciones }}
+                            {% if form.observaciones.errors %}
+                            <div class="text-danger">{{ form.observaciones.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.recomendaciones.id_for_label }}" class="form-label">
+                                Recomendaciones
+                            </label>
+                            {{ form.recomendaciones }}
+                            {% if form.recomendaciones.errors %}
+                            <div class="text-danger">{{ form.recomendaciones.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i> Guardar Control
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                                <i class="bi bi-x-circle me-1"></i> Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Instrucciones
+                </div>
+                <div class="card-body">
+                    <h6>Guía para control de calidad:</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <strong>Aprobado:</strong> Producto cumple todos los estándares
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-tools text-warning me-2"></i>
+                            <strong>Reparación:</strong> Requiere ajustes menores
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-x-circle text-danger me-2"></i>
+                            <strong>Rechazado:</strong> Defectos críticos, no reparable
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-search text-info me-2"></i>
+                            <strong>Revisión:</strong> Necesita análisis adicional
+                        </li>
+                    </ul>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="bi bi-lightbulb me-1"></i>
+                        Después de guardar, podrás agregar detalles específicos de defectos si es necesario.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-select, .form-control {
+        border-radius: 0.375rem;
+    }
+    textarea.form-control {
+        min-height: 120px;
+    }
+</style>
+{% endblock %}
