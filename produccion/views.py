@@ -197,6 +197,38 @@ def cambiar_estado_pedido(request, pk):
     
     return redirect('pedido_detail', pk=pk)
 
+@login_required
+def eliminar_pedido(request, pk):
+    """Elimina un pedido y registra la operación."""
+    pedido = get_object_or_404(Pedido, pk=pk)
+    
+    # Verificar si hay órdenes de producción relacionadas
+    if hasattr(pedido, 'ordenes_produccion') and pedido.ordenes_produccion.exists():
+        messages.error(request, 
+            f'No se puede eliminar el pedido {pedido.codigo} porque tiene órdenes de producción relacionadas.')
+        return redirect('pedido_detail', pk=pk)
+    
+    if request.method == 'POST':
+        # Guardar información para el mensaje y registro
+        codigo_pedido = pedido.codigo
+        cliente = str(pedido.cliente)
+        
+        # Eliminar el pedido
+        pedido.delete()
+        
+        # Registrar la operación
+        Operacion.objects.create(
+            usuario=request.user,
+            accion='eliminar_pedido',
+            descripcion=f'Eliminó el pedido {codigo_pedido} del cliente {cliente}'
+        )
+        
+        messages.success(request, f'Pedido {codigo_pedido} eliminado exitosamente.')
+        return redirect('pedido_list')  # Redirige a la lista de pedidos
+    
+    # Si se accede por GET, mostrar página de confirmación
+    return render(request, 'produccion/pedido_confirm_delete.html', {'pedido': pedido})
+
 # ============ ÓRDENES DE PRODUCCIÓN ============ #
 class OrdenProduccionListView(LoginRequiredMixin, ListView):
     model = OrdenProduccion
