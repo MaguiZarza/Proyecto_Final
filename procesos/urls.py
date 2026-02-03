@@ -58,4 +58,7 @@ urlpatterns = [
     # Exportación
     path('exportar/procesos-csv/', views.exportar_procesos_csv, name='exportar_procesos_csv'),
     path('exportar/controles-calidad-csv/', views.exportar_controles_calidad_csv, name='exportar_controles_calidad_csv'),
+    
+    path('tiempos/', views.lista_tiempos, name='lista_tiempos'),
+    path('tiempos/nuevo/', views.registrar_tiempo, name='registrar_tiempo'),
 ]

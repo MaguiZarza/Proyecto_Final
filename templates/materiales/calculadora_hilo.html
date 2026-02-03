@@ -1,95 +1,656 @@
 {% extends 'base.html' %}
 
+{% block title %}Calculadora Textil{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">🧵 Calculadora de Consumo de Hilo</h1>
+<div class="calculadora-container">
+    <div class="header-calculadora">
+        <h1>🧵 CALCULADORA TEXTIL INTERACTIVA</h1>
+        <p>Selecciona las opciones en cada columna para calcular materiales necesarios</p>
+    </div>
     
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    Parámetros de Cálculo
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.consumo.label }}</label>
-                            {{ form.consumo }}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.metros_tela.label }}</label>
-                            {{ form.metros_tela }}
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">Calcular</button>
-                    </form>
+    <form id="ordenProduccion">
+        <div class="columnas-calculadora">
+            <!-- Columna TALLES -->
+            <div class="columna-calc">
+                <h3> TALLES</h3>
+                
+                <h4> Niños</h4>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="4">Talle 4</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="6">Talle 6</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="8">Talle 8</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="10">Talle 10</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="12">Talle 12</button>
+                
+                <h4> Adultos</h4>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="XS">XS</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="S">S</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="M">M</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="L">L</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="XL">XL</button>
+                
+                <h4> Oversize</h4>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="XXL">XXL</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="XXXL">XXXL</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="OV-M">OV M</button>
+                <button type="button" class="btn-opcion" data-categoria="talle" data-valor="OV-L">OV L</button>
+            </div>
+            
+            <!-- Columna TELAS -->
+            <div class="columna-calc">
+                <h3> TELAS</h3>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="algodon">
+                    Algodón 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="algodon_peinado">
+                    Algodón peinado 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="jersey">
+                    Jersey 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="frisa">
+                    Frisa 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="pique">
+                    Piqué 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="franela">
+                    Franela 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="jean">
+                    Jean 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="tela" data-valor="modal">
+                    Modal 
+                </button>
+            </div>
+            
+            <!-- Columna HILO -->
+            <div class="columna-calc">
+                <h3>🧶 HILO</h3>
+                <button type="button" class="btn-opcion" data-categoria="hilo" data-valor="algodon">
+                    Hilo Algodón 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="hilo" data-valor="poliester">
+                    Hilo Poliéster 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="hilo" data-valor="overlock">
+                    Hilo Overlock 
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="hilo" data-valor="mezclado">
+                    Hilo Mezclado 
+                </button>
+            </div>
+            
+            <!-- Columna PRENDA -->
+            <div class="columna-calc">
+                <h3>PRENDA</h3>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="remera">
+                    Remera
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="pantalon">
+                    Pantalón
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="short">
+                    Short
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="chomba">
+                    Chomba
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="buzos">
+                    Buzos
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="manga_largas">
+                    Manga largas
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="musculosas">
+                    Musculosas
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="bolsos">
+                    Bolsos
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="ropa_muneca">
+                    Ropa de muñeca
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="calzas">
+                    Calzas
+                </button>
+                <button type="button" class="btn-opcion" data-categoria="prenda" data-valor="bikers">
+                    Bikers
+                </button>
+            </div>
+            
+            <!-- Columna CANTIDAD -->
+            <div class="columna-calc columna-cantidad">
+                <h3>🔢 CANTIDAD</h3>
+                <div class="cantidad-container">
+                    <input 
+                        type="number" 
+                        class="cantidad-input" 
+                        id="cantidadInput" 
+                        min="1" 
+                        value="1"
+                        placeholder="Cantidad"
+                    >
+                    <div class="botones-cantidad">
+                        <button type="button" class="btn-cantidad" onclick="cambiarCantidad(-1)">-1</button>
+                        <button type="button" class="btn-cantidad" onclick="cambiarCantidad(-10)">-10</button>
+                        <button type="button" class="btn-cantidad" onclick="cambiarCantidad(1)">+1</button>
+                        <button type="button" class="btn-cantidad" onclick="cambiarCantidad(10)">+10</button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-6">
-            {% if resultado %}
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    📊 Resultados del Cálculo
-                </div>
-                <div class="card-body">
-                    <h5>Configuración seleccionada:</h5>
-                    <p><strong>Tela:</strong> {{ consumo.tela.nombre }}</p>
-                    <p><strong>Máquina:</strong> {{ consumo.configuracion.nombre }}</p>
-                    <p><strong>Metros de tela:</strong> {{ metros }} m</p>
-                    
-                    <hr>
-                    
-                    <h5>Consumo de hilo por tipo:</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Tipo de Hilo</th>
-                                    <th>Metros Necesarios</th>
-                                    <th>Conos (exactos)</th>
-                                    <th>Conos (a comprar)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for tipo_hilo, datos in resultado.items %}
-                                <tr>
-                                    <td>{{ tipo_hilo }}</td>
-                                    <td>{{ datos.metros_hilo }} m</td>
-                                    <td>{{ datos.conos }}</td>
-                                    <td><strong>{{ datos.conos_redondeados }}</strong></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <a href="{% url 'calculadora_hilo' %}" class="btn btn-secondary">Nuevo Cálculo</a>
-                    </div>
-                </div>
+        <div class="acciones-calculadora">
+            <button type="button" class="btn-calcular" onclick="calcularProduccion()">
+                 CALCULAR PRODUCCIÓN
+            </button>
+        </div>
+    </form>
+    
+    <div class="resultados-calculadora" id="resultados">
+        <h2>RESULTADOS DE LA PRODUCCIÓN</h2>
+        
+        <div class="grid-resultados">
+            <div class="resultado-item">
+                <h3> Consumo Tela</h3>
+                <div class="resultado-valor" id="resultado-tela">0 m</div>
             </div>
-            {% else %}
-            <div class="card">
-                <div class="card-header">
-                    ℹ️ Información
-                </div>
-                <div class="card-body">
-                    <p>Complete los datos a la izquierda para calcular el consumo de hilo necesario.</p>
-                    <p>El sistema calculará automáticamente:</p>
-                    <ul>
-                        <li>Metros de hilo por tipo</li>
-                        <li>Cantidad de conos exactos</li>
-                        <li>Cantidad a comprar (redondeado hacia arriba)</li>
-                    </ul>
-                </div>
+            <div class="resultado-item">
+                <h3> Consumo Hilo</h3>
+                <div class="resultado-valor" id="resultado-hilo">0 m</div>
             </div>
-            {% endif %}
+            <div class="resultado-item">
+                <h3> Tiempo Total</h3>
+                <div class="resultado-valor" id="resultado-tiempo">0 min</div>
+            </div>
+            <div class="resultado-item">
+                <h3> Costo Tela</h3>
+                <div class="resultado-valor" id="resultado-costo-tela">$0</div>
+            </div>
+            <div class="resultado-item">
+                <h3> Costo Hilo</h3>
+                <div class="resultado-valor" id="resultado-costo-hilo">$0</div>
+            </div>
+            <div class="resultado-item">
+                <h3> Costo Total</h3>
+                <div class="resultado-valor" id="resultado-costo-total">$0</div>
+            </div>
+            <div class="resultado-item">
+                <h3> Costo Unitario</h3>
+                <div class="resultado-valor" id="resultado-costo-unitario">$0</div>
+            </div>
+            <div class="resultado-item">
+                <h3> Tiempo/Unidad</h3>
+                <div class="resultado-valor" id="resultado-tiempo-unitario">0 min</div>
+            </div>
+        </div>
+        
+        <div class="detalles-seleccion" id="detalles-seleccion">
+            <h4> CONFIGURACIÓN SELECCIONADA</h4>
+            <div id="detalles-texto">Esperando selección...</div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos simplificados con colores lisos */
+    .calculadora-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .header-calculadora {
+        background: #2c3e50;
+        color: white;
+        padding: 25px;
+        text-align: center;
+        border-bottom: 1px solid #34495e;
+    }
+    
+    .header-calculadora h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    
+    .header-calculadora p {
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+    
+    .columnas-calculadora {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 25px;
+        background: #f5f5f5;
+    }
+    
+    .columna-calc {
+        flex: 1;
+        min-width: 220px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        overflow: hidden;
+    }
+    
+    .columna-calc h3 {
+        background: #34495e;
+        color: white;
+        padding: 15px;
+        margin: 0;
+        text-align: center;
+        font-size: 1.1rem;
+        font-weight: 500;
+        border-bottom: 1px solid #2c3e50;
+    }
+    
+    .columna-calc h4 {
+        background: #ecf0f1;
+        color: #2c3e50;
+        padding: 8px 15px;
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .btn-opcion {
+        display: block;
+        width: 100%;
+        padding: 12px 15px;
+        background: white;
+        border: none;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+        cursor: pointer;
+        font-size: 0.95rem;
+        color: #333;
+        transition: background 0.2s;
+    }
+    
+    .btn-opcion:hover {
+        background: #f8f9fa;
+    }
+    
+    .btn-opcion.activo {
+        background: #3498db;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .columna-cantidad {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    .cantidad-container {
+        text-align: center;
+        width: 100%;
+    }
+    
+    .cantidad-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.5rem;
+        text-align: center;
+        border: 2px solid #bdc3c7;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+    
+    .botones-cantidad {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .btn-cantidad {
+        padding: 10px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #7f8c8d;
+        color: white;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    
+    .btn-cantidad:hover {
+        background: #95a5a6;
+    }
+    
+    .acciones-calculadora {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #ddd;
+    }
+    
+    .btn-calcular {
+        display: block;
+        width: 100%;
+        padding: 15px;
+        background: #2c3e50;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.2rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-calcular:hover {
+        background: #34495e;
+    }
+    
+    .resultados-calculadora {
+        padding: 25px;
+        background: #f8f9fa;
+        border-top: 1px solid #ddd;
+        display: none;
+    }
+    
+    .resultados-calculadora.mostrar {
+        display: block;
+    }
+    
+    .resultados-calculadora h2 {
+        text-align: center;
+        margin-bottom: 25px;
+        font-size: 1.5rem;
+        color: #2c3e50;
+    }
+    
+    .grid-resultados {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .resultado-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        text-align: center;
+        border: 1px solid #ddd;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .resultado-item h3 {
+        font-size: 0.9rem;
+        color: #7f8c8d;
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+    
+    .resultado-valor {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .detalles-seleccion {
+        padding: 15px;
+        background: white;
+        border-radius: 6px;
+        border-left: 4px solid #3498db;
+    }
+    
+    .detalles-seleccion h4 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    
+    .detalle-item {
+        display: inline-block;
+        background: #ecf0f1;
+        padding: 6px 12px;
+        margin: 5px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #34495e;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .columna-calc { min-width: 200px; }
+    }
+    
+    @media (max-width: 768px) {
+        .columnas-calculadora { flex-direction: column; }
+        .columna-calc { min-width: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // DATOS DE CONSUMO - BASADOS EN EXPERIENCIA REAL DE TALLER
+    const datosConsumo = {
+        tela: {
+            'XS': { remera: 1.0, pantalon: 1.2, short: 0.8, chomba: 1.1, buzos: 1.5, manga_largas: 1.2, musculosas: 0.7, bolsos: 0.5, ropa_muneca: 0.2, calzas: 1.0, bikers: 1.1 },
+            'S':  { remera: 1.2, pantalon: 1.4, short: 0.9, chomba: 1.3, buzos: 1.7, manga_largas: 1.4, musculosas: 0.8, bolsos: 0.6, ropa_muneca: 0.2, calzas: 1.2, bikers: 1.3 },
+            'M':  { remera: 1.4, pantalon: 1.6, short: 1.0, chomba: 1.5, buzos: 1.9, manga_largas: 1.6, musculosas: 0.9, bolsos: 0.7, ropa_muneca: 0.3, calzas: 1.4, bikers: 1.5 },
+            'L':  { remera: 1.6, pantalon: 1.8, short: 1.1, chomba: 1.7, buzos: 2.1, manga_largas: 1.8, musculosas: 1.0, bolsos: 0.8, ropa_muneca: 0.3, calzas: 1.6, bikers: 1.7 },
+            'XL': { remera: 1.8, pantalon: 2.0, short: 1.2, chomba: 1.9, buzos: 2.3, manga_largas: 2.0, musculosas: 1.1, bolsos: 0.9, ropa_muneca: 0.4, calzas: 1.8, bikers: 1.9 },
+            'XXL': { remera: 2.0, pantalon: 2.2, short: 1.3, chomba: 2.1, buzos: 2.5, manga_largas: 2.2, musculosas: 1.2, bolsos: 1.0, ropa_muneca: 0.4, calzas: 2.0, bikers: 2.1 },
+            'XXXL': { remera: 2.2, pantalon: 2.4, short: 1.4, chomba: 2.3, buzos: 2.7, manga_largas: 2.4, musculosas: 1.3, bolsos: 1.1, ropa_muneca: 0.5, calzas: 2.2, bikers: 2.3 },
+            'OV-M': { remera: 2.4, pantalon: 2.6, short: 1.5, chomba: 2.5, buzos: 2.9, manga_largas: 2.6, musculosas: 1.4, bolsos: 1.2, ropa_muneca: 0.5, calzas: 2.4, bikers: 2.5 },
+            'OV-L': { remera: 2.6, pantalon: 2.8, short: 1.6, chomba: 2.7, buzos: 3.1, manga_largas: 2.8, musculosas: 1.5, bolsos: 1.3, ropa_muneca: 0.6, calzas: 2.6, bikers: 2.7 },
+            '4': { remera: 0.6, pantalon: 0.8, short: 0.5, chomba: 0.7, buzos: 1.0, manga_largas: 0.8, musculosas: 0.4, bolsos: 0.3, ropa_muneca: 0.1, calzas: 0.6, bikers: 0.7 },
+            '6': { remera: 0.7, pantalon: 0.9, short: 0.6, chomba: 0.8, buzos: 1.1, manga_largas: 0.9, musculosas: 0.5, bolsos: 0.4, ropa_muneca: 0.1, calzas: 0.7, bikers: 0.8 },
+            '8': { remera: 0.8, pantalon: 1.0, short: 0.7, chomba: 0.9, buzos: 1.2, manga_largas: 1.0, musculosas: 0.6, bolsos: 0.5, ropa_muneca: 0.2, calzas: 0.8, bikers: 0.9 },
+            '10': { remera: 0.9, pantalon: 1.1, short: 0.8, chomba: 1.0, buzos: 1.3, manga_largas: 1.1, musculosas: 0.7, bolsos: 0.6, ropa_muneca: 0.2, calzas: 0.9, bikers: 1.0 },
+            '12': { remera: 1.0, pantalon: 1.2, short: 0.9, chomba: 1.1, buzos: 1.4, manga_largas: 1.2, musculosas: 0.8, bolsos: 0.7, ropa_muneca: 0.3, calzas: 1.0, bikers: 1.1 }
+        },
+        
+        hilo: {
+            remera: 140,
+            pantalon: 320,
+            short: 220,
+            chomba: 180,
+            buzos: 260,
+            manga_largas: 200,
+            musculosas: 120,
+            bolsos: 450,
+            ropa_muneca: 40,
+            calzas: 240,
+            bikers: 260
+        },
+        
+        tiempo: {
+            remera: 15,
+            pantalon: 25,
+            short: 12,
+            chomba: 20,
+            buzos: 30,
+            manga_largas: 22,
+            musculosas: 10,
+            bolsos: 45,
+            ropa_muneca: 8,
+            calzas: 18,
+            bikers: 20
+        },
+        
+        preciosTela: {
+            algodon: 1200,
+            algodon_peinado: 1500,
+            jersey: 1800,
+            frisa: 2000,
+            pique: 1600,
+            franela: 1900,
+            jean: 2200,
+            modal: 2300
+        },
+        
+        preciosHilo: {
+            algodon: 500,
+            poliester: 400,
+            overlock: 600,
+            mezclado: 550
+        },
+        
+        factoresTalle: {
+            'XS': 0.95,
+            'S': 1.0,
+            'M': 1.05,
+            'L': 1.1,
+            'XL': 1.15,
+            'XXL': 1.2,
+            'XXXL': 1.25,
+            'OV-M': 1.3,
+            'OV-L': 1.35,
+            '4': 0.6,
+            '6': 0.7,
+            '8': 0.8,
+            '10': 0.9,
+            '12': 1.0
+        }
+    };
+    
+    // Estado de selección
+    const seleccion = {
+        talle: null,
+        tela: null,
+        hilo: null,
+        prenda: null,
+        cantidad: 1
+    };
+    
+    // Inicializar botones
+    document.querySelectorAll(".btn-opcion").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const categoria = btn.dataset.categoria;
+            const valor = btn.dataset.valor;
+            
+            // Desactivar otros botones de la misma categoría
+            document.querySelectorAll(`.btn-opcion[data-categoria="${categoria}"]`).forEach(b => {
+                b.classList.remove("activo");
+            });
+            
+            // Activar este botón
+            btn.classList.add("activo");
+            seleccion[categoria] = valor;
+        });
+    });
+    
+    // Manejar cantidad
+    function cambiarCantidad(delta) {
+        const input = document.getElementById('cantidadInput');
+        let cantidad = parseInt(input.value) + delta;
+        if (cantidad < 1) cantidad = 1;
+        input.value = cantidad;
+        seleccion.cantidad = cantidad;
+    }
+    
+    // Calcular producción
+    function calcularProduccion() {
+        // Validar selección completa
+        if (!seleccion.talle || !seleccion.tela || !seleccion.hilo || !seleccion.prenda) {
+            alert("⚠️ Por favor, selecciona una opción en cada columna antes de calcular.");
+            return;
+        }
+        
+        const cantidad = seleccion.cantidad;
+        const factorTalle = datosConsumo.factoresTalle[seleccion.talle] || 1.0;
+        
+        // Calcular consumo de tela (SIN factor de talle)
+        const consumoBaseTela = datosConsumo.tela[seleccion.talle][seleccion.prenda];
+        const consumoTela = consumoBaseTela * cantidad;
+        
+        // Calcular consumo de hilo (metros) (CON factor de talle)
+        const consumoBaseHilo = datosConsumo.hilo[seleccion.prenda];
+        const consumoHilo = consumoBaseHilo * factorTalle * cantidad;
+        
+        // Calcular tiempo (CON factor de talle)
+        const tiempoBase = datosConsumo.tiempo[seleccion.prenda];
+        const tiempoTotal = tiempoBase * factorTalle * cantidad;
+        
+        // Calcular costos
+        const precioTela = datosConsumo.preciosTela[seleccion.tela] || 1500;
+        const precioHilo = datosConsumo.preciosHilo[seleccion.hilo] || 500;
+        
+        // Convertir hilo de metros a kg (4500m = 1kg)
+        const hiloKg = consumoHilo / 4500;
+        const costoTela = consumoTela * precioTela;
+        const costoHilo = hiloKg * precioHilo;
+        const costoTotal = costoTela + costoHilo;
+        const costoUnitario = costoTotal / cantidad;
+        
+        // Actualizar interfaz
+        document.getElementById('resultado-tela').textContent = `${consumoTela.toFixed(2)} m`;
+        document.getElementById('resultado-hilo').textContent = `${consumoHilo.toFixed(0)} m`;
+        document.getElementById('resultado-tiempo').textContent = `${tiempoTotal.toFixed(0)} min`;
+        document.getElementById('resultado-costo-tela').textContent = `$${costoTela.toFixed(0)}`;
+        document.getElementById('resultado-costo-hilo').textContent = `$${costoHilo.toFixed(0)}`;
+        document.getElementById('resultado-costo-total').textContent = `$${costoTotal.toFixed(0)}`;
+        document.getElementById('resultado-costo-unitario').textContent = `$${costoUnitario.toFixed(0)}`;
+        document.getElementById('resultado-tiempo-unitario').textContent = `${(tiempoTotal/cantidad).toFixed(0)} min`;
+        
+        // Mostrar detalles
+        const detalles = `
+            <span class="detalle-item">Prenda: ${seleccion.prenda}</span>
+            <span class="detalle-item">Talle: ${seleccion.talle}</span>
+            <span class="detalle-item">Tela: ${seleccion.tela}</span>
+            <span class="detalle-item">Hilo: ${seleccion.hilo}</span>
+            <span class="detalle-item">Cantidad: ${cantidad} unidades</span>
+        `;
+        document.getElementById('detalles-texto').innerHTML = detalles;
+        
+        // Mostrar resultados
+        document.getElementById('resultados').classList.add('mostrar');
+        
+        // Desplazarse suavemente a los resultados
+        document.getElementById('resultados').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+    
+    // Inicializar evento en cantidad
+    document.getElementById('cantidadInput').addEventListener('change', function() {
+        let cantidad = parseInt(this.value);
+        if (isNaN(cantidad) || cantidad < 1) {
+            cantidad = 1;
+            this.value = 1;
+        }
+        seleccion.cantidad = cantidad;
+    });
+    
+    // Pre-seleccionar opciones comunes para facilitar pruebas
+    window.addEventListener('load', function() {
+        // Seleccionar automáticamente opciones comunes
+        setTimeout(() => {
+            const btnTalle = document.querySelector('.btn-opcion[data-categoria="talle"][data-valor="M"]');
+            const btnTela = document.querySelector('.btn-opcion[data-categoria="tela"][data-valor="algodon"]');
+            const btnHilo = document.querySelector('.btn-opcion[data-categoria="hilo"][data-valor="algodon"]');
+            const btnPrenda = document.querySelector('.btn-opcion[data-categoria="prenda"][data-valor="remera"]');
+            
+            if (btnTalle && btnTela && btnHilo && btnPrenda) {
+                btnTalle.click();
+                btnTela.click();
+                btnHilo.click();
+                btnPrenda.click();
+            }
+        }, 500);
+    });
+</script>
 {% endblock %}

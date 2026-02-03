@@ -240,3 +240,39 @@ class AsignarProcesoForm(forms.Form):
         super().__init__(*args, **kwargs)
         from django.contrib.auth.models import User
         self.fields['operario'].queryset = User.objects.filter(is_active=True, groups__name='Operarios')
+    
+class RegistroTiempoManualForm(forms.Form):
+    nombre_usuario = forms.CharField(
+        label='Nombre del operario',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    prenda = forms.CharField(
+        label='Prenda realizada',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    tiempo = forms.DurationField(
+        label='Tiempo empleado (HH:MM:SS)',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '00:30:00'
+        })
+    )
+
+    descripcion = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2
+        })
+    )
+class FiltroTiempoForm(forms.Form):
+    nombre = forms.CharField(
+        required=False,
+        label='Buscar por nombre',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ej: Juan'
+        })
+    )

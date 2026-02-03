@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}Tiempos Registrados | Sistema de Gestión de Taller{% endblock %}
+
+{% block page_title %}Tiempos Registrados{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="bi bi-stopwatch me-2"></i>Registro de Tiempos
+                </h1>
+                <p class="text-muted mb-0">Gestión y consulta de tiempos de producción registrados</p>
+            </div>
+            <a href="{% url 'registrar_tiempo' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nuevo Registro
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Card de filtros -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-funnel me-2"></i>Filtros de Búsqueda
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get">
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search me-1"></i>Buscar
+                    </button>
+                    <a href="{% url 'lista_tiempos' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card de resultados -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-ul me-2"></i>Registros de Tiempo
+                        <span class="badge bg-secondary ms-2">{{ tiempos.count }}</span>
+                    </h5>
+                    <div class="text-muted small">
+                        Total registros encontrados
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if tiempos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" width="20%">
+                                    <i class="bi bi-calendar me-1"></i>Fecha y Hora
+                                </th>
+                                <th scope="col" width="55%">
+                                    <i class="bi bi-card-text me-1"></i>Descripción
+                                </th>
+                                <th scope="col" width="25%" class="text-end">
+                                    <i class="bi bi-clock me-1"></i>Tiempo Empleado
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in tiempos %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
+                                            <i class="bi bi-calendar-date text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ t.fecha|date:"d/m/Y" }}</div>
+                                            <small class="text-muted">{{ t.fecha|date:"H:i" }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-medium">{{ t.descripcion|truncatechars:80 }}</div>
+                                    {% if t.descripcion|length > 80 %}
+                                    <small class="text-muted">{{ t.descripcion }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-primary bg-opacity-25 text-primary fs-6 px-3 py-2">
+                                        <i class="bi bi-clock-history me-2"></i>
+                                        {{ t.tiempo_empleado }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-stopwatch fs-1 text-muted"></i>
+                    </div>
+                    <h5 class="text-muted mb-3">No se encontraron registros</h5>
+                    <p class="text-muted mb-4">No hay tiempos registrados con los filtros actuales</p>
+                    <a href="{% url 'registrar_tiempo' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Registrar primer tiempo
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% if tiempos.has_other_pages %}
+            <div class="card-footer bg-white">
+                <nav aria-label="Paginación">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if tiempos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ tiempos.previous_page_number }}" aria-label="Anterior">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in tiempos.paginator.page_range %}
+                        {% if tiempos.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        {% if tiempos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ tiempos.next_page_number }}" aria-label="Siguiente">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Registros</h6>
+                        <h3 class="mb-0">{{ tiempos.count }}</h3>
+                    </div>
+                    <div class="stat-icon text-primary">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Último Registro</h6>
+                        <h5 class="mb-0">
+                            {% if tiempos %}
+                                {{ tiempos.0.fecha|date:"d/m/Y" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div class="stat-icon text-success">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Periodo Actual</h6>
+                        <h5 class="mb-0">
+                            {% now "F Y" %}
+                        </h5>
+                    </div>
+                    <div class="stat-icon text-warning">
+                        <i class="bi bi-calendar-range"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th {
+        font-weight: 600;
+        color: #2c3e50;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .badge.bg-primary.bg-opacity-25 {
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}

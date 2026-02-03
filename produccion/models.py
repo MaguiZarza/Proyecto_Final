@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from datetime import datetime, timedelta
+from django.utils import timezone
+from django.db.models import Q
 
 ## Models de produccion
 
@@ -150,7 +152,6 @@ class MetodoProduccion(models.Model):
     costo_adicional = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     # Configuración
-    # NOTA: La relación con procesos se manejará después para evitar dependencia circular
     instrucciones = models.TextField(blank=True)
     imagen_referencia = models.ImageField(upload_to='metodos/', blank=True, null=True)
     activo = models.BooleanField(default=True)
@@ -225,7 +226,45 @@ class MetodoProceso(models.Model):
         return f"{self.metodo.nombre} - Proceso en orden {self.orden}"  # Cambia esto
 
 
-# ============ MODELO ORDEN PRODUCCIÓN ============ #
+# ============ MODELO ESTADO TRAZABILIDAD ============ #
+class EstadoTrazabilidad(models.Model):
+    """Estados para la trazabilidad del lote"""
+    nombre = models.CharField(max_length=50, unique=True)
+    descripcion = models.TextField(blank=True)
+    orden = models.PositiveIntegerField(default=0)
+    color = models.CharField(max_length=20, default='#6c757d')
+    icono = models.CharField(max_length=50, default='fa-circle')
+    
+    class Meta:
+        ordering = ['orden']
+        verbose_name = 'Estado de Trazabilidad'
+        verbose_name_plural = 'Estados de Trazabilidad'
+    
+    def __str__(self):
+        return self.nombre
+    
+    @classmethod
+    def crear_estados_predeterminados(cls):
+        """Crea los estados predeterminados para trazabilidad"""
+        estados = [
+            {'nombre': '📋 Planeado', 'orden': 1, 'color': '#6c757d', 'icono': 'fa-clipboard'},
+            {'nombre': '✂️ Corte', 'orden': 2, 'color': '#dc3545', 'icono': 'fa-cut'},
+            {'nombre': '🧵 Confección', 'orden': 3, 'color': '#fd7e14', 'icono': 'fa-thread'},
+            {'nombre': '🔍 Revisión', 'orden': 4, 'color': '#ffc107', 'icono': 'fa-search'},
+            {'nombre': '📦 Empaque', 'orden': 5, 'color': '#17a2b8', 'icono': 'fa-box'},
+            {'nombre': '✅ Completado', 'orden': 6, 'color': '#28a745', 'icono': 'fa-check-circle'},
+            {'nombre': '🚚 Despachado', 'orden': 7, 'color': '#007bff', 'icono': 'fa-truck'},
+        ]
+        
+        for estado in estados:
+            cls.objects.get_or_create(
+                nombre=estado['nombre'],
+                defaults=estado
+            )
+        return cls.objects.all()
+
+
+# ============ MODELO ORDEN PRODUCCIÓN CON LOTE INTEGRADO ============ #
 class OrdenProduccion(models.Model):
     ESTADO_CHOICES = [
         ('programada', ' Programada'),
@@ -259,8 +298,63 @@ class OrdenProduccion(models.Model):
     observaciones = models.TextField(blank=True)
     incidencias = models.TextField(blank=True)
     
+    # === CAMPOS NUEVOS DE LOTE INTEGRADO === #
+    # Código de lote simplificado (generado automáticamente)
+    codigo_lote = models.CharField(max_length=20, unique=True, blank=True, editable=False)
+    
+    # Trazabilidad
+    estado_trazabilidad = models.ForeignKey(
+        EstadoTrazabilidad, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='ordenes'
+    )
+    
+    # Cantidades específicas de lote
+    cantidad_rechazada = models.PositiveIntegerField(default=0)
+    cantidad_aprobada = models.PositiveIntegerField(default=0)
+    
+    # Ubicación actual
+    ubicacion_actual = models.CharField(max_length=100, blank=True)
+    
+    # Control de calidad integrado
+    requiere_control_calidad = models.BooleanField(default=True)
+    resultado_control_calidad = models.CharField(
+        max_length=20,
+        choices=[
+            ('pendiente', '⏳ Pendiente'),
+            ('aprobado', '✅ Aprobado'),
+            ('rechazado', '❌ Rechazado'),
+            ('reparacion', '🔧 Requiere Reparación'),
+            ('parcial', '⚠️ Parcial'),
+        ],
+        default='pendiente'
+    )
+    
+    # Fechas específicas de lote
+    fecha_inicio_produccion = models.DateTimeField(null=True, blank=True)
+    fecha_fin_produccion = models.DateTimeField(null=True, blank=True)
+    fecha_control_calidad = models.DateTimeField(null=True, blank=True)
+    fecha_almacenamiento = models.DateTimeField(null=True, blank=True)
+    fecha_despacho = models.DateTimeField(null=True, blank=True)
+    
+    # Auditoría de lote
+    revisado_por = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='lotes_revisados'
+    )
+    fecha_revision = models.DateTimeField(null=True, blank=True)
+    
+    # Tags para búsqueda
+    etiquetas = models.JSONField(default=list, blank=True)
+    
     # Añadir campo activo si es necesario
     activo = models.BooleanField(default=True)
+    # === FIN CAMPOS NUEVOS === #
 
     class Meta:
         ordering = ['-fecha_creacion']
@@ -285,20 +379,127 @@ class OrdenProduccion(models.Model):
             self.progreso = 0
         self.save()
 
+    def _obtener_codigo_producto_para_lote(self):
+        """Obtiene el código abreviado para el lote según el producto"""
+        # Mapeo de productos a códigos abreviados (según tu ejemplo)
+        mapeo_codigos = {
+            'remera': 'REM',
+            'pantalon': 'PAN',
+            'short': 'SHR',
+            'chomba': 'CHO',
+            'buzos': 'BUZ',
+            'manga largas': 'MAN',
+            'musculosas': 'MUS',
+            'bolsos': 'BOL',
+            'ropa de muñeca': 'ROM',
+            'calzas': 'CAL',
+            'bikers': 'BIK',
+        }
+        
+        nombre_producto = self.pedido.producto.nombre.lower()
+        return mapeo_codigos.get(nombre_producto, 'GEN')
+
+    def generar_codigo_lote_simplificado(self):
+        """Genera un código de lote simple - VERSIÓN TEMPORAL"""
+        # Por ahora usa un formato simple, luego integraremos tu formato
+        fecha = timezone.now().strftime('%y%m%d')
+        
+        # Obtener código de producto abreviado
+        producto_cod = self._obtener_codigo_producto_para_lote()
+        
+        # Contar cuántos lotes del mismo producto hoy
+        hoy = timezone.now().date()
+        mismo_producto_hoy = OrdenProduccion.objects.filter(
+            pedido__producto__nombre__iexact=self.pedido.producto.nombre,
+            fecha_creacion__date=hoy
+        ).count()
+        
+        secuencia = mismo_producto_hoy + 1
+        return f"{producto_cod}-{fecha}-{secuencia:03d}"
+
     def save(self, *args, **kwargs):
         # Si no tiene código, usar el código del pedido con sufijo para múltiples órdenes
         if not self.codigo and self.pedido:
-            # Contar cuántas órdenes ya tiene este pedido (incluyendo esta si ya existe)
             ordenes_existentes = OrdenProduccion.objects.filter(pedido=self.pedido).exclude(id=self.id).count()
             
             if ordenes_existentes == 0:
-                # Primera orden para este pedido
                 self.codigo = self.pedido.codigo
             else:
-                # Órdenes subsiguientes
                 self.codigo = f"{self.pedido.codigo}-{ordenes_existentes + 1:02d}"
         
+        # Generar código de lote si no existe
+        if not self.codigo_lote:
+            self.codigo_lote = self.generar_codigo_lote_simplificado()
+        
+        # Actualizar cantidad aprobada
+        self.cantidad_aprobada = max(0, self.cantidad_producida - self.cantidad_rechazada)
+        
+        # Si se completa la producción, actualizar fechas
+        if self.estado == 'completada' and not self.fecha_fin_produccion:
+            self.fecha_fin_produccion = timezone.now()
+        
         super().save(*args, **kwargs)
+
+    def registrar_trazabilidad(self, etapa, observaciones="", usuario=None):
+        """Registra un evento en la trazabilidad del lote"""
+        from procesos.models import Operacion
+        
+        Operacion.objects.create(
+            usuario=usuario,
+            accion='trazabilidad_lote',
+            descripcion=f"Lote {self.codigo_lote}: {etapa}. {observaciones}",
+            referencia=self.codigo_lote
+        )
+        
+        # Actualizar ubicación según etapa
+        self.ubicacion_actual = etapa
+        self.save()
+
+    def iniciar_control_calidad(self):
+        """Inicia el control de calidad del lote"""
+        self.resultado_control_calidad = 'pendiente'
+        self.fecha_control_calidad = timezone.now()
+        self.save()
+        self.registrar_trazabilidad("Control de calidad iniciado")
+
+    def aprobar_control_calidad(self, usuario):
+        """Aprueba el lote en control de calidad"""
+        self.resultado_control_calidad = 'aprobado'
+        self.revisado_por = usuario
+        self.fecha_revision = timezone.now()
+        self.save()
+        self.registrar_trazabilidad("Control de calidad aprobado", usuario=usuario)
+
+    def rechazar_control_calidad(self, cantidad_rechazada, motivo, usuario):
+        """Rechaza total o parcialmente el lote"""
+        self.cantidad_rechazada = cantidad_rechazada
+        self.cantidad_aprobada = max(0, self.cantidad_producida - cantidad_rechazada)
+        
+        if cantidad_rechazada >= self.cantidad_producida:
+            self.resultado_control_calidad = 'rechazado'
+        else:
+            self.resultado_control_calidad = 'parcial'
+        
+        self.revisado_por = usuario
+        self.fecha_revision = timezone.now()
+        self.save()
+        
+        self.registrar_trazabilidad(
+            f"Control de calidad: {cantidad_rechazada} unidades rechazadas. Motivo: {motivo}",
+            usuario=usuario
+        )
+
+    def marcar_como_almacenado(self):
+        """Marca el lote como almacenado"""
+        self.fecha_almacenamiento = timezone.now()
+        self.save()
+        self.registrar_trazabilidad("Lote almacenado")
+
+    def marcar_como_despachado(self):
+        """Marca el lote como despachado"""
+        self.fecha_despacho = timezone.now()
+        self.save()
+        self.registrar_trazabilidad("Lote despachado")
 
 # ============ MODELO PLANIFICACIÓN ============ #
 class Planificacion(models.Model):
@@ -314,7 +515,6 @@ class Planificacion(models.Model):
     fecha_fin = models.DateField()
     
     # Relaciones
-    # Usamos string para evitar dependencia circular
     ordenes = models.ManyToManyField(OrdenProduccion, through='PlanificacionOrden', blank=True)
     responsables = models.ManyToManyField(User, related_name='planificaciones', blank=True)
     
@@ -432,7 +632,11 @@ def crear_datos_predeterminados():
     # Crear métodos de producción predeterminados
     metodos = MetodoProduccion.crear_metodos_produccion_predeterminados()
     
+    # Crear estados de trazabilidad predeterminados
+    estados = EstadoTrazabilidad.crear_estados_predeterminados()
+    
     return {
         'productos_creados': len(productos),
-        'metodos_creados': len(metodos)
+        'metodos_creados': len(metodos),
+        'estados_creados': len(estados)
     }
