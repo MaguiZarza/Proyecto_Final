@@ -1,0 +1,199 @@
+<!-- templates/produccion/planificacion_editar.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar {{ planificacion.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'planificacion_list' %}">Planificaciones</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'planificacion_detail' planificacion.pk %}">{{ planificacion.nombre|truncatechars:30 }}</a></li>
+                    <li class="breadcrumb-item active">Editar</li>
+                </ol>
+            </nav>
+            
+            <h2 class="mb-0">Editar Planificación</h2>
+            <p class="text-muted">Modifica los detalles de la planificación</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Información de la Planificación</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_nombre" class="form-label">Nombre</label>
+                                {{ form.nombre }}
+                                {% if form.nombre.errors %}
+                                <div class="text-danger">{{ form.nombre.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_tipo" class="form-label">Tipo</label>
+                                {{ form.tipo }}
+                                {% if form.tipo.errors %}
+                                <div class="text-danger">{{ form.tipo.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_fecha_inicio" class="form-label">Fecha Inicio</label>
+                                {{ form.fecha_inicio }}
+                                {% if form.fecha_inicio.errors %}
+                                <div class="text-danger">{{ form.fecha_inicio.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_fecha_fin" class="form-label">Fecha Fin</label>
+                                {{ form.fecha_fin }}
+                                {% if form.fecha_fin.errors %}
+                                <div class="text-danger">{{ form.fecha_fin.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="id_descripcion" class="form-label">Descripción</label>
+                                {{ form.descripcion }}
+                                {% if form.descripcion.errors %}
+                                <div class="text-danger">{{ form.descripcion.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="id_objetivos" class="form-label">Objetivos</label>
+                                {{ form.objetivos }}
+                                {% if form.objetivos.errors %}
+                                <div class="text-danger">{{ form.objetivos.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="id_responsables" class="form-label">Responsables</label>
+                                {{ form.responsables }}
+                                {% if form.responsables.errors %}
+                                <div class="text-danger">{{ form.responsables.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">Mantén presionado Ctrl para seleccionar múltiples responsables.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Órdenes Asignadas</label>
+                                {{ form.ordenes }}
+                                {% if form.ordenes.errors %}
+                                <div class="text-danger">{{ form.ordenes.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">Mantén presionado Ctrl para seleccionar múltiples órdenes.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'planificacion_detail' planificacion.pk %}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Guardar Cambios
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Órdenes Disponibles</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+                        {% for orden in ordenes_disponibles %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ orden.codigo }}</h6>
+                                <small class="text-muted">{{ orden.get_estado_display }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <strong>Cliente:</strong> {{ orden.pedido.cliente }}<br>
+                                <strong>Producto:</strong> {{ orden.pedido.producto.nombre }}<br>
+                                <strong>Cantidad:</strong> {{ orden.cantidad_a_producir }}
+                            </p>
+                            <div class="progress mb-2" style="height: 15px;">
+                                <div class="progress-bar 
+                                    {% if orden.progreso >= 80 %}bg-success
+                                    {% elif orden.progreso >= 50 %}bg-warning
+                                    {% else %}bg-danger{% endif %}"
+                                     role="progressbar" 
+                                     style="width: {{ orden.progreso }}%"
+                                     aria-valuenow="{{ orden.progreso }}" 
+                                     aria-valuemin="0" aria-valuemax="100">
+                                    {{ orden.progreso }}%
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item text-center text-muted">
+                            <i class="fas fa-box-open fa-2x mb-2"></i>
+                            <p>No hay órdenes disponibles</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Instrucciones:</strong><br>
+                        <small>
+                            1. Modifica los campos necesarios<br>
+                            2. Selecciona responsables y órdenes<br>
+                            3. Guarda los cambios<br>
+                            4. Las asignaciones específicas (fechas y turnos) se mantendrán
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+select[multiple] {
+    height: 200px;
+}
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+</style>
+{% endblock %}
