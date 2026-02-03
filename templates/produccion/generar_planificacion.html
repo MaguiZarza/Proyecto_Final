@@ -1,0 +1,243 @@
+<!-- templates/produccion/generar_planificacion.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generar Planificación Semanal - Producción{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'planificacion_list' %}">Planificación</a></li>
+                    <li class="breadcrumb-item active">Generar Planificación</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Generar Planificación Semanal</h2>
+            <p class="text-muted">Genera una planificación semanal automática basada en pedidos pendientes</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Configurar Planificación</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'generar_planificacion_semanal' %}">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fecha_inicio" class="form-label">Fecha de Inicio (Lunes)</label>
+                                <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                                       value="{{ fecha_lunes }}" required>
+                                <div class="form-text">La planificación comenzará este día</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha de Fin (Domingo)</label>
+                                <input type="text" class="form-control" value="{{ fecha_domingo }}" readonly>
+                                <div class="form-text">Calculado automáticamente</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Pedidos Disponibles para Planificar</h6>
+                                        
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th><input type="checkbox" id="select-all"></th>
+                                                        <th>Código</th>
+                                                        <th>Cliente</th>
+                                                        <th>Producto</th>
+                                                        <th>Cantidad</th>
+                                                        <th>Entrega</th>
+                                                        <th>Prioridad</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for pedido in pedidos_pendientes %}
+                                                    <tr>
+                                                        <td>
+                                                            <input type="checkbox" name="pedidos" value="{{ pedido.id }}" checked>
+                                                        </td>
+                                                        <td>{{ pedido.codigo }}</td>
+                                                        <td>{{ pedido.cliente }}</td>
+                                                        <td>{{ pedido.producto.nombre }}</td>
+                                                        <td>{{ pedido.cantidad }}</td>
+                                                        <td>
+                                                            <span class="badge 
+                                                                {% if pedido.dias_restantes < 0 %}bg-danger
+                                                                {% elif pedido.dias_restantes <= 2 %}bg-warning
+                                                                {% else %}bg-success{% endif %}">
+                                                                {{ pedido.fecha_entrega|date:"d/m/Y" }}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge 
+                                                                {% if pedido.prioridad == 4 %}bg-danger
+                                                                {% elif pedido.prioridad == 3 %}bg-warning
+                                                                {% elif pedido.prioridad == 2 %}bg-primary
+                                                                {% else %}bg-secondary{% endif %}">
+                                                                {{ pedido.get_prioridad_display }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td colspan="7" class="text-center">No hay pedidos pendientes para planificar</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <div class="alert alert-info mt-3">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Información:</strong> Se seleccionarán automáticamente los pedidos más urgentes.
+                                            Puedes desmarcar aquellos que no quieras incluir.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre" class="form-label">Nombre de la Planificación</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       value="Planificación Semanal {{ fecha_lunes|date:'d/m/Y' }} - {{ fecha_domingo|date:'d/m/Y' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="responsables" class="form-label">Responsables</label>
+                                <select multiple class="form-select" id="responsables" name="responsables">
+                                    {% for usuario in usuarios_supervisores %}
+                                    <option value="{{ usuario.id }}" selected>{{ usuario.get_full_name|default:usuario.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="descripcion" class="form-label">Descripción (opcional)</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'planificacion_list' %}" class="btn btn-secondary">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-calendar-plus"></i> Generar Planificación
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Vista Previa Semanal</h5>
+                </div>
+                <div class="card-body">
+                    <div class="calendar-preview">
+                        {% for dia in dias_semana %}
+                        <div class="card mb-2">
+                            <div class="card-header py-1 {% if dia.es_hoy %}bg-warning{% else %}bg-light{% endif %}">
+                                <strong>{{ dia.fecha|date:"l" }}</strong><br>
+                                <small>{{ dia.fecha|date:"d/m/Y" }}</small>
+                            </div>
+                            <div class="card-body py-2">
+                                <small class="text-muted">
+                                    {% if dia.num_pedidos %}
+                                        {{ dia.num_pedidos }} pedido{{ dia.num_pedidos|pluralize }}
+                                    {% else %}
+                                        Sin asignaciones
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header bg-light">
+                            <h6 class="card-title mb-0">Resumen</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-clipboard-list text-primary"></i>
+                                    <strong>Pedidos disponibles:</strong> {{ pedidos_pendientes|length }}
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-calendar-day text-success"></i>
+                                    <strong>Días de trabajo:</strong> 7 días
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-industry text-warning"></i>
+                                    <strong>Capacidad estimada:</strong> 20-40 pedidos
+                                </li>
+                                <li>
+                                    <i class="fas fa-users text-info"></i>
+                                    <strong>Supervisores:</strong> {{ usuarios_supervisores|length }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Nota:</strong> La planificación generará órdenes de producción para los pedidos seleccionados.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-preview {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all checkbox
+    document.getElementById('select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('input[name="pedidos"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // Set default date to next Monday
+    const today = new Date();
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + (1 + 7 - today.getDay()) % 7);
+    
+    const fechaInput = document.getElementById('fecha_inicio');
+    if (!fechaInput.value) {
+        fechaInput.valueAsDate = nextMonday;
+    }
+});
+</script>
+{% endblock %}

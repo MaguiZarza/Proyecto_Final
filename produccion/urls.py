@@ -46,4 +46,21 @@ urlpatterns = [
     
     # APIs para gráficos
     path('api/estadisticas/', views.api_estadisticas, name='api_estadisticas'),
+    # En el archivo urls.py
+    path('planificacion/<int:pk>/detalle/', views.planificacion_detail, name='planificacion_detail'),
+    path('planificacion/', PlanificacionListView.as_view(), name='planificacion_list'),
+    path('planificacion/calendario/', views.vista_calendario, name='calendario'),
+    path('planificacion/generar-semanal/', views.generar_planificacion_semanal, name='generar_planificacion_semanal'),
+    path('planificacion/<int:pk>/detalle/', views.planificacion_detail, name='planificacion_detail'),
+    
+    # Planificación - Acciones
+    path('planificacion/<int:pk>/completar/', views.marcar_planificacion_completada, name='planificacion_completar'),
+    path('planificacion/<int:pk>/activar-desactivar/', views.activar_desactivar_planificacion, name='planificacion_activar_desactivar'),
+    path('planificacion/<int:pk>/eliminar/', views.eliminar_planificacion, name='planificacion_eliminar'),
+    path('planificacion/<int:pk>/editar/', views.editar_planificacion, name='planificacion_editar'),
+    path('planificacion/<int:pk>/agregar-orden/', views.agregar_orden_a_planificacion, name='planificacion_agregar_orden'),
+    path('planificacion/<int:pk>/remover-orden/', views.remover_orden_de_planificacion, name='planificacion_remover_orden'),
+    path('planificacion/<int:pk>/estadisticas-pedidos/', views.obtener_estadisticas_pedidos_planificacion, name='planificacion_estadisticas_pedidos'),
+    
+    
 ]
