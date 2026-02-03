@@ -182,6 +182,22 @@ class PedidoUpdateView(LoginRequiredMixin, UpdateView):
         
         messages.success(self.request, f'Pedido {form.instance.codigo} actualizado exitosamente.')
         return response
+    
+    # Agregar método para pasar contexto adicional si es necesario
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Asegurar que el producto "Personalizado" exista
+        producto_personalizado, created = Producto.objects.get_or_create(
+            nombre='Personalizado',
+            codigo='PER-001',
+            defaults={
+                'descripcion': 'Producto personalizado según especificaciones del cliente',
+                'costo_estimado': 0,
+                'precio_venta': 0,
+                'activo': True
+            }
+        )
+        return context
 
 class PedidoDetailView(LoginRequiredMixin, DetailView):
     model = Pedido

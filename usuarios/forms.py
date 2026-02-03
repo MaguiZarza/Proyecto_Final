@@ -240,3 +240,78 @@ class EmailAuthenticationForm(AuthenticationForm):
                     )
         
         return self.cleaned_data
+
+
+class UserUpdateForm(forms.ModelForm):
+    """Formulario para actualizar información básica del usuario"""
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellido'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Correo electrónico'}),
+        }
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        # Verificar que el email no esté en uso por otro usuario
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Este correo electrónico ya está en uso.")
+        return email
+
+class ProfileUpdateForm(forms.ModelForm):
+    """Formulario para actualizar información del perfil"""
+    class Meta:
+        model = Profile
+        fields = ['phone', 'company', 'profile_image']
+        widgets = {
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+34 123 456 789'}),
+            'company': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del taller'}),
+            'profile_image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'profile_image': 'Foto de perfil',
+        }
+
+class PasswordChangeCustomForm(forms.Form):
+    """Formulario para cambiar contraseña"""
+    current_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Contraseña actual'}),
+        label="Contraseña actual"
+    )
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Nueva contraseña'}),
+        label="Nueva contraseña",
+        min_length=8
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirmar nueva contraseña'}),
+        label="Confirmar nueva contraseña"
+    )
+    
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+    
+    def clean_current_password(self):
+        current_password = self.cleaned_data.get('current_password')
+        if not self.user.check_password(current_password):
+            raise forms.ValidationError("La contraseña actual es incorrecta.")
+        return current_password
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get('new_password')
+        confirm_password = cleaned_data.get('confirm_password')
+        
+        if new_password and confirm_password and new_password != confirm_password:
+            raise forms.ValidationError("Las contraseñas no coinciden.")
+        
+        return cleaned_data
+    
+    def save(self):
+        new_password = self.cleaned_data.get('new_password')
+        self.user.set_password(new_password)
+        self.user.save()
+        return self.user

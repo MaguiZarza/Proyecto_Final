@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración - Sistema de Gestión{% endblock %}
+
+{% block page_title %}Configuración{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <!-- Menú lateral de configuración -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Configuración</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'perfil' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-person me-2"></i>Mi Perfil
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="bi bi-bell me-2"></i>Notificaciones
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="bi bi-display me-2"></i>Apariencia
+                    </a>
+                    <a href="{% url 'admin:index' %}" target="_blank" class="list-group-item list-group-item-action">
+                        <i class="bi bi-shield-lock me-2"></i>Administración
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <!-- Configuración general -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-display me-2"></i>Preferencias de Visualización</h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Tema de la aplicación</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" id="themeLight" checked>
+                                <label class="form-check-label" for="themeLight">
+                                    <i class="bi bi-sun me-1"></i> Tema claro
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" id="themeDark">
+                                <label class="form-check-label" for="themeDark">
+                                    <i class="bi bi-moon me-1"></i> Tema oscuro
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="languageSelect" class="form-label">Idioma</label>
+                            <select class="form-select" id="languageSelect">
+                                <option selected>Español</option>
+                                <option>Inglés</option>
+                                <option>Catalán</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="timezoneSelect" class="form-label">Zona horaria</label>
+                            <select class="form-select" id="timezoneSelect">
+                                <option selected>Europe/Madrid (GMT+2)</option>
+                                <option>UTC (GMT+0)</option>
+                                <option>America/New_York (GMT-4)</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" disabled>
+                            <i class="bi bi-save me-1"></i>Guardar Preferencias
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Notificaciones -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Configuración de Notificaciones</h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="notificationsEnabled" checked>
+                                <label class="form-check-label" for="notificationsEnabled">
+                                    Activar notificaciones
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Tipos de notificaciones a recibir:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifPedidos" checked>
+                                <label class="form-check-label" for="notifPedidos">
+                                    Nuevos pedidos
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifProduccion" checked>
+                                <label class="form-check-label" for="notifProduccion">
+                                    Actualizaciones de producción
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifInventario" checked>
+                                <label class="form-check-label" for="notifInventario">
+                                    Alertas de inventario
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="notifCalidad" checked>
+                                <label class="form-check-label" for="notifCalidad">
+                                    Reportes de calidad
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Frecuencia de notificaciones por email</label>
+                            <select class="form-select">
+                                <option selected>Inmediatamente</option>
+                                <option>Resumen diario</option>
+                                <option>Resumen semanal</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" disabled>
+                            <i class="bi bi-save me-1"></i>Guardar Configuración
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

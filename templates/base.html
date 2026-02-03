@@ -302,22 +302,30 @@
                             {% endif %}
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            {% if user.is_authenticated %}
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="post" action="{% url 'logout' %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
-                                        </button>
-                                    </form>
-                                </li>
-                            {% else %}
-                                <li><a class="dropdown-item" href="{% url 'admin:login' %}">Iniciar sesión</a></li>
-                            {% endif %}
-                        </ul>
+    {% if user.is_authenticated %}
+        <!-- Agrega el enlace a Mi Perfil -->
+        <li><a class="dropdown-item" href="{% url 'perfil' %}">
+            <i class="bi bi-person me-2"></i>Mi perfil
+        </a></li>
+        
+        <!-- Agrega el enlace a Configuración -->
+        <li><a class="dropdown-item" href="{% url 'configuracion' %}">
+            <i class="bi bi-gear me-2"></i>Configuración
+        </a></li>
+        
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form method="post" action="{% url 'logout' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item text-danger">
+                    <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
+                </button>
+            </form>
+        </li>
+    {% else %}
+        <li><a class="dropdown-item" href="{% url 'admin:login' %}">Iniciar sesión</a></li>
+    {% endif %}
+</ul>
                     </div>
                 </div>
             </div>
