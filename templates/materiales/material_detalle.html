@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Información del material -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">{{ material }}</h4>
+                    <span class="badge bg-{% if material.activo %}success{% else %}danger{% endif %}">
+                        {% if material.activo %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Nombre:</th>
+                                    <td>{{ material.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo:</th>
+                                    <td>
+                                        <span class="badge bg-info">{{ material.get_tipo_display }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Color:</th>
+                                    <td>
+                                        {% if material.color %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="color-circle me-2" 
+                                                     style="background-color: {{ material.color }}; 
+                                                            width: 20px; height: 20px; 
+                                                            border-radius: 50%; border: 1px solid #ddd;">
+                                                </div>
+                                                {{ material.color }}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Sin color</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Código Color:</th>
+                                    <td>
+                                        {% if material.codigo_color %}
+                                            <code>{{ material.codigo_color }}</code>
+                                        {% else %}
+                                            <span class="text-muted">Sin código</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Unidad:</th>
+                                    <td>{{ material.unidad }}</td>
+                                </tr>
+                                {% if inventario %}
+                                <tr>
+                                    <th>Stock Actual:</th>
+                                    <td>
+                                        <h4 class="mb-0 {% if inventario.necesita_reabastecimiento %}text-danger{% endif %}">
+                                            {{ inventario.cantidad_actual }} {{ material.unidad }}
+                                        </h4>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Mínimo/Máximo:</th>
+                                    <td>
+                                        {{ inventario.cantidad_minima }} / {{ inventario.cantidad_maxima }} {{ material.unidad }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Ubicación:</th>
+                                    <td>{{ inventario.ubicacion|default:"Sin ubicación" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Costo Promedio:</th>
+                                    <td>${{ inventario.costo_promedio }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ajustar cantidad -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pencil"></i> Ajustar Stock</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'ajustar_cantidad' material.pk %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo de movimiento</label>
+                                {{ ajuste_form.tipo_movimiento }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cantidad ({{ material.unidad }})</label>
+                                {{ ajuste_form.cantidad }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Costo unitario ($)</label>
+                                {{ ajuste_form.costo_unitario }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Motivo</label>
+                                {{ ajuste_form.motivo }}
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> Registrar Movimiento
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Movimientos recientes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Movimientos Recientes</h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% for movimiento in movimientos %}
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</small>
+                                <span class="badge bg-{% if movimiento.tipo == 'entrada' %}success{% else %}warning{% endif %}">
+                                    {{ movimiento.get_tipo_display }}
+                                </span>
+                            </div>
+                            <div class="mt-1">
+                                <strong>{{ movimiento.cantidad_movimiento }} {{ material.unidad }}</strong>
+                                <small class="text-muted d-block">{{ movimiento.motivo|truncatechars:50 }}</small>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center">No hay movimientos</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Historial de precios -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Historial de Costos</h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% for costo in historico_costos %}
+                        <div class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>{{ costo.fecha|date:"d/m/Y" }}</small>
+                                <strong>${{ costo.costo_unitario }}</strong>
+                            </div>
+                            <small class="text-muted">{{ costo.origen }} - {{ costo.cantidad }} {{ material.unidad }}</small>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center">No hay histórico de precios</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
