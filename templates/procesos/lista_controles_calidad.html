@@ -1,0 +1,242 @@
+<!-- templates/procesos/lista_controles_calidad.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Controles de Calidad{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mt-4"><i class="bi bi-clipboard-data me-2"></i>Control de Calidad</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard_procesos' %}">Procesos</a></li>
+                <li class="breadcrumb-item active">Control de Calidad</li>
+            </ol>
+        </div>
+        <a href="{% url 'crear_control_calidad' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo Control
+        </a>
+    </div>
+
+    <!-- Tarjetas de Resumen -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Total Controles</h5>
+                        <h2 class="card-text">{{ total_controles }}</h2>
+                    </div>
+                    <i class="bi bi-clipboard-data display-6"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Aprobados</h5>
+                        <h2 class="card-text">{{ aprobados }}</h2>
+                    </div>
+                    <i class="bi bi-check-circle display-6"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Reparación</h5>
+                        <h2 class="card-text">{{ controles_rechazados }}</h2>
+                    </div>
+                    <i class="bi bi-tools display-6"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Rechazados</h5>
+                        <h2 class="card-text">{{ rechazados }}</h2>
+                    </div>
+                    <i class="bi bi-x-circle display-6"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-funnel me-1"></i>
+            Filtros
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="resultado" class="form-label">Resultado</label>
+                    <select name="resultado" id="resultado" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="aprobado" {% if request.GET.resultado == 'aprobado' %}selected{% endif %}>Aprobado</option>
+                        <option value="rechazado" {% if request.GET.resultado == 'rechazado' %}selected{% endif %}>Rechazado</option>
+                        <option value="reparacion" {% if request.GET.resultado == 'reparacion' %}selected{% endif %}>Reparación</option>
+                        <option value="revision" {% if request.GET.resultado == 'revision' %}selected{% endif %}>Revisión</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Desde</label>
+                    <input type="date" name="fecha_inicio" id="fecha_inicio" 
+                           class="form-control" value="{{ request.GET.fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Hasta</label>
+                    <input type="date" name="fecha_fin" id="fecha_fin" 
+                           class="form-control" value="{{ request.GET.fecha_fin }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-filter"></i> Filtrar
+                    </button>
+                    <a href="{% url 'lista_controles_calidad' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Controles -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-table me-1"></i>
+            Controles de Calidad Registrados
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Proceso/Lote</th>
+                            <th>Inspector</th>
+                            <th>Resultado</th>
+                            <th>Defectos</th>
+                            <th>Costo Rep.</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for control in page_obj %}
+                        <tr>
+                            <td><strong>#{{ control.id }}</strong></td>
+                            <td>{{ control.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if control.proceso %}
+                                    {{ control.proceso.nombre }}
+                                {% elif control.orden_produccion %}
+                                    Lote: {{ control.orden_produccion.codigo_lote }}
+                                {% else %}
+                                    General
+                                {% endif %}
+                            </td>
+                            <td>{{ control.inspector.username }}</td>
+                            <td>
+                                {% if control.resultado == 'aprobado' %}
+                                    <span class="badge bg-success">✅ Aprobado</span>
+                                {% elif control.resultado == 'rechazado' %}
+                                    <span class="badge bg-danger">❌ Rechazado</span>
+                                {% elif control.resultado == 'reparacion' %}
+                                    <span class="badge bg-warning">🔧 Reparación</span>
+                                {% else %}
+                                    <span class="badge bg-info">🔍 Revisión</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ control.cantidad_defectos }}
+                                {% if control.cantidad_defectos > 0 %}
+                                    <small class="text-muted d-block">{{ control.puntuacion_total }} pts</small>
+                                {% endif %}
+                            </td>
+                            <td>${{ control.costo_reparacion|default:"0" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'detalle_control_calidad' control.id %}" 
+                                       class="btn btn-outline-primary" title="Ver detalle">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if control.resultado == 'reparacion' or control.resultado == 'rechazado' %}
+                                    <a href="{% url 'generar_no_conformidad' control.id %}" 
+                                       class="btn btn-outline-danger" title="Generar No Conformidad">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if user.is_superuser or user == control.inspector %}
+                                    <a href="{% url 'agregar_detalle_control' control.id %}" 
+                                       class="btn btn-outline-warning" title="Agregar defecto">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="bi bi-clipboard-x display-4 text-muted"></i>
+                                <h5 class="mt-2">No hay controles de calidad registrados</h5>
+                                <p class="text-muted">Comienza creando tu primer control de calidad</p>
+                                <a href="{% url 'crear_control_calidad' %}" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle me-1"></i> Crear Control
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -31,4 +31,17 @@ urlpatterns = [
     
     # APIs
     path('api/inventario-datos/', views.api_inventario_datos, name='api_inventario_datos'),
+        # Materiales con colores
+    path('materiales/', views.materiales_lista, name='materiales_lista'),
+    path('materiales/nuevo/', views.material_crear, name='material_crear'),
+    path('materiales/<int:pk>/', views.material_detalle, name='material_detalle'),
+    path('materiales/<int:pk>/ajustar/', views.ajustar_cantidad, name='ajustar_cantidad'),
+    
+    # Búsqueda rápida
+    path('buscar-materiales/', views.buscar_materiales, name='buscar_materiales'),
+    
+    # Reportes
+    path('reporte-stock-colores/', views.reporte_stock_colores, name='reporte_stock_colores'),
+    
+
 ]

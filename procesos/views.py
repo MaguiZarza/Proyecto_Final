@@ -8,7 +8,8 @@ from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import json
 import csv
-
+from .forms import RegistroTiempoManualForm
+ ## views de procesos
 from .models import (
     Operacion, Proceso, EtapaProceso, MaterialProceso,
     FlujoTrabajo, ProcesoFlujo, Temporizador,
@@ -20,7 +21,7 @@ from .forms import (
     IniciarTemporizadorForm, ControlCalidadForm,
     ControlCalidadDetalleForm, NoConformidadForm,
     FiltroProcesosForm, FiltroControlCalidadForm,
-    AsignarProcesoForm
+    AsignarProcesoForm, FiltroTiempoForm
 )
 from produccion.models import OrdenProduccion
 
@@ -941,3 +942,84 @@ def exportar_controles_calidad_csv(request):
         ])
     
     return response
+
+@login_required
+def lista_tiempos(request):
+    tiempos = Operacion.objects.filter(
+        accion='temporizador'
+    ).order_by('-fecha')
+
+    return render(request, 'procesos/tiempos/lista_tiempos.html', {
+        'tiempos': tiempos
+    })
+
+@login_required
+def registrar_tiempo(request):
+    if request.method == 'POST':
+        form = RegistroTiempoManualForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+
+            Operacion.objects.create(
+                usuario=request.user,
+                accion='temporizador',
+                descripcion=(
+                    f"Usuario: {data['nombre_usuario']} | "
+                    f"Prenda: {data['prenda']} | "
+                    f"{data['descripcion']}"
+                ),
+                tiempo_empleado=data['tiempo']
+            )
+
+            return redirect('lista_tiempos')
+    else:
+        form = RegistroTiempoManualForm()
+
+    return render(request, 'procesos/tiempos/registrar_tiempo.html', {
+        'form': form
+    })
+
+@login_required
+def lista_tiempos(request):
+    tiempos = Operacion.objects.filter(accion='temporizador')
+
+    form = FiltroTiempoForm(request.GET)
+
+    if form.is_valid():
+        nombre = form.cleaned_data.get('nombre')
+        if nombre:
+            tiempos = tiempos.filter(
+                descripcion__icontains=nombre
+            )
+
+    tiempos = tiempos.order_by('-fecha')
+
+    return render(request, 'procesos/tiempos/lista_tiempos.html', {
+        'tiempos': tiempos,
+        'form': form
+    })
+@login_required
+def registrar_tiempo(request):
+    if request.method == 'POST':
+        form = RegistroTiempoManualForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+
+            Operacion.objects.create(
+                usuario=request.user,
+                accion='temporizador',
+                descripcion=(
+                    f"Usuario: {data['nombre_usuario']} | "
+                    f"Prenda: {data['prenda']} | "
+                    f"{data['descripcion']}"
+                ),
+                tiempo_empleado=data['tiempo']
+            )
+
+            return redirect('lista_tiempos')
+    else:
+        form = RegistroTiempoManualForm()
+
+    return render(request, 'procesos/tiempos/registrar_tiempo.html', {
+        'form': form
+    })

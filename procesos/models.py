@@ -17,6 +17,7 @@ class Operacion(models.Model):
         ('control_calidad', 'Control de calidad'),
         ('no_conformidad', 'No conformidad detectada'),
         ('temporizador', 'Temporizador utilizado'),
+        ('trazabilidad_lote', 'Trazabilidad de lote'),  # NUEVO
     ]
 
     fecha = models.DateTimeField(auto_now_add=True)
@@ -347,7 +348,7 @@ class Temporizador(models.Model):
                 return min(100, max(0, porcentaje))
         return 0
 
-# ============ CONTROL DE CALIDAD AVANZADO ============ #
+# ============ CONTROL DE CALIDAD AVANZADO (MODIFICADO PARA LOTE) ============ #
 class ControlCalidad(models.Model):
     RESULTADO_CHOICES = [
         ('aprobado', '✅ Aprobado'),
@@ -356,13 +357,27 @@ class ControlCalidad(models.Model):
         ('revision', '🔍 En revisión'),
     ]
 
-    # Relaciones
+    # Relaciones MODIFICADAS - Ahora con OrdenProduccion (lote)
     proceso = models.ForeignKey(Proceso, on_delete=models.CASCADE, null=True, blank=True)
     etapa = models.ForeignKey(EtapaProceso, on_delete=models.CASCADE, null=True, blank=True)
-    # Usamos string para evitar dependencia circular
-    # orden_produccion = models.ForeignKey('produccion.OrdenProduccion', on_delete=models.SET_NULL, null=True, blank=True)
-    # Comentamos temporalmente la referencia a lotes para evitar dependencia
-    # lote = models.ForeignKey('lotes.Lote', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # NUEVA RELACIÓN con OrdenProduccion (lote)
+    orden_produccion = models.ForeignKey(
+        'produccion.OrdenProduccion', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='controles_calidad'
+    )
+    
+    # Relación con Pedido
+    pedido = models.ForeignKey(
+        'produccion.Pedido', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='controles_calidad'
+    )
     
     # Información básica
     fecha = models.DateTimeField(auto_now_add=True)
@@ -388,7 +403,23 @@ class ControlCalidad(models.Model):
         verbose_name_plural = 'Controles de Calidad'
 
     def __str__(self):
-        return f"Control {self.proceso.nombre if self.proceso else 'General'} - {self.fecha:%d/%m/%Y}"
+        lote_info = f"Lote {self.orden_produccion.codigo_lote}" if self.orden_produccion else "General"
+        return f"Control {lote_info} - {self.fecha:%d/%m/%Y}"
+
+    def save(self, *args, **kwargs):
+        # Si hay orden de producción, obtener el pedido automáticamente
+        if self.orden_produccion and not self.pedido:
+            self.pedido = self.orden_produccion.pedido
+        
+        # Si se aprueba/rechaza, actualizar el lote
+        if self.orden_produccion and self.resultado != 'revision':
+            if self.resultado == 'aprobado':
+                self.orden_produccion.aprobar_control_calidad(self.inspector)
+            elif self.resultado in ['rechazado', 'reparacion']:
+                # Podrías agregar lógica para cantidad rechazada específica
+                pass
+        
+        super().save(*args, **kwargs)
 
     def marcar_como_revisado(self, usuario):
         self.revisado_por = usuario
@@ -446,11 +477,18 @@ class NoConformidad(models.Model):
         (4, '⚫ Crítica'),
     ]
 
-    # Relaciones
+    # Relaciones MODIFICADAS
     proceso = models.ForeignKey(Proceso, on_delete=models.SET_NULL, null=True, blank=True)
     control_calidad = models.ForeignKey(ControlCalidad, on_delete=models.SET_NULL, null=True, blank=True)
-    # Usamos string para evitar dependencia circular
-    # orden_produccion = models.ForeignKey('produccion.OrdenProduccion', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # NUEVA RELACIÓN con OrdenProduccion (lote)
+    orden_produccion = models.ForeignKey(
+        'produccion.OrdenProduccion', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='no_conformidades'
+    )
     
     # Información básica
     codigo = models.CharField(max_length=20, unique=True)
@@ -486,7 +524,8 @@ class NoConformidad(models.Model):
         verbose_name_plural = 'No Conformidades'
 
     def __str__(self):
-        return f"NC-{self.codigo} - {self.get_estado_display()}"
+        lote_info = f"Lote {self.orden_produccion.codigo_lote}" if self.orden_produccion else ""
+        return f"NC-{self.codigo} - {lote_info} - {self.get_estado_display()}"
 
     def save(self, *args, **kwargs):
         if not self.codigo:

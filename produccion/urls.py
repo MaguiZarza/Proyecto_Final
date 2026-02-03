@@ -17,13 +17,21 @@ urlpatterns = [
     path('pedidos/<int:pk>/cambiar-estado/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
     path('pedidos/<int:pk>/eliminar/', views.eliminar_pedido, name='eliminar_pedido'),
     
-    # Órdenes de Producción
+    # Órdenes de Producción (con lote integrado)
     path('ordenes-produccion/', OrdenProduccionListView.as_view(), name='ordenproduccion_list'),
     path('ordenes-produccion/nueva/', views.crear_orden_produccion, name='ordenproduccion_create'),
-    # ELIMINAR o CORREGIR: path('ordenes-produccion/nueva/<int:pedido_id>/', views.crear_orden_produccion, name='ordenproduccion_create_from_pedido'),
-    path('ordenes-produccion/<int:pk>/', views.orden_produccion_detail, name='ordenproduccion_detail'),  # NUEVA VISTA
+    path('ordenes-produccion/<int:pk>/', views.orden_produccion_detail, name='ordenproduccion_detail'),
     path('ordenes-produccion/<int:pk>/avance/', views.actualizar_avance, name='actualizar_avance'),
     path('ordenes-produccion/<int:pk>/cambiar-estado/', views.cambiar_estado_orden, name='cambiar_estado_orden'),
+    
+    # Trazabilidad y Control de Lote
+    path('ordenes-produccion/<int:pk>/actualizar-trazabilidad/', views.actualizar_estado_trazabilidad, name='actualizar_estado_trazabilidad'),
+    path('ordenes-produccion/<int:pk>/control-calidad/', views.control_calidad_lote, name='control_calidad_lote'),
+    path('ordenes-produccion/<int:pk>/almacenar/', views.marcar_como_almacenado, name='marcar_almacenado'),
+    path('ordenes-produccion/<int:pk>/despachar/', views.marcar_como_despachado, name='marcar_despachado'),
+    
+    # Reportes de Lotes
+    path('lotes/reporte/', views.reporte_lotes, name='reporte_lotes'),
     
     # Planificación
     path('planificacion/', PlanificacionListView.as_view(), name='planificacion_list'),

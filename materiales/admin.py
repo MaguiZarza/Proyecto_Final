@@ -61,9 +61,20 @@ class ProductoAdmin(admin.ModelAdmin):
 # MATERIAL
 @admin.register(Material)
 class MaterialAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'tipo', 'unidad', 'activo')
-    list_filter = ('tipo', 'activo')
-    search_fields = ('nombre',)
+    list_display = ('nombre', 'tipo', 'color', 'codigo_color', 'unidad', 'activo')
+    list_filter = ('tipo', 'activo', 'color')
+    search_fields = ('nombre', 'color', 'codigo_color')
+    list_editable = ('activo',)
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('nombre', 'tipo', 'unidad', 'activo')
+        }),
+        ('Color', {
+            'fields': ('color', 'codigo_color'),
+            'classes': ('collapse',)
+        }),
+    )
     
     
 # ... (admin existente) ...

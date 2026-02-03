@@ -17,7 +17,7 @@ from produccion.models import Producto  # Añadido: importar desde produccion
 from .forms import (
     CalculadoraHiloForm, CalculadoraMaterialesForm, InventarioForm,
     MovimientoInventarioForm, AlertaStockForm, PedidoCompraForm,
-    FiltroInventarioForm, AjusteInventarioForm, GenerarReporteForm
+    FiltroInventarioForm, AjusteInventarioForm, GenerarReporteForm,MaterialConColorForm, TelaForm, HiloForm, AjusteCantidadForm
 )
 from procesos.models import Operacion
 
@@ -121,7 +121,7 @@ def inventario_lista(request):
         'materiales_bajos': materiales_bajos,
         'valor_total': valor_total,
     }
-    return render(request, 'materiales/inventario_lista.html', context)
+    return render(request, 'materiales/materiales_lista.html', context)
 
 @login_required
 @permission_required('materiales.add_inventario', raise_exception=True)
@@ -559,3 +559,195 @@ def api_inventario_datos(request):
         'materiales_bajos_count': materiales_bajos_count,
         'valor_total': valor_total
     })
+    
+
+
+# ============ MATERIALES CON COLORES ============ #
+@login_required
+def materiales_lista(request):
+    # Filtros
+    tipo = request.GET.get('tipo', '')
+    color = request.GET.get('color', '')
+    
+    materiales = Material.objects.filter(activo=True)
+    
+    if tipo:
+        materiales = materiales.filter(tipo=tipo)
+    if color:
+        materiales = materiales.filter(color__icontains=color)
+    
+    # Agrupar por tipo para estadísticas
+    estadisticas = materiales.values('tipo').annotate(
+        total=Count('id'),
+        colores_distintos=Count('color', distinct=True)
+    )
+    
+    # Lista de colores únicos
+    colores = Material.objects.filter(activo=True).values_list('color', flat=True).distinct()
+    
+    context = {
+        'materiales': materiales,
+        'estadisticas': estadisticas,
+        'colores': colores,
+        'tipo_seleccionado': tipo,
+        'color_seleccionado': color,
+    }
+    return render(request, 'materiales/materiales_lista.html', context)
+
+@login_required
+@permission_required('materiales.add_material', raise_exception=True)
+def material_crear(request):
+    if request.method == 'POST':
+        form = MaterialConColorForm(request.POST)
+        if form.is_valid():
+            material = form.save()
+            
+            # Crear automáticamente inventario si no existe
+            inventario, created = Inventario.objects.get_or_create(
+                material=material,
+                defaults={
+                    'cantidad_actual': 0,
+                    'cantidad_minima': 10,
+                    'cantidad_maxima': 1000,
+                    'ubicacion': 'Almacén Principal',
+                    'actualizado_por': request.user
+                }
+            )
+            
+            messages.success(request, f'Material "{material}" creado exitosamente.')
+            return redirect('material_detalle', pk=material.pk)
+    else:
+        form = MaterialConColorForm()
+    
+    return render(request, 'materiales/material_form.html', {'form': form})
+
+@login_required
+def material_detalle(request, pk):
+    material = get_object_or_404(Material, pk=pk)
+    inventario = Inventario.objects.filter(material=material).first()
+    
+    # Movimientos recientes
+    movimientos = MovimientoInventario.objects.filter(
+        inventario__material=material
+    ).order_by('-fecha_movimiento')[:10]
+    
+    # Historial de precios
+    historico_costos = HistoricoCosto.objects.filter(material=material).order_by('-fecha')[:10]
+    
+    # Formulario para ajustar cantidad
+    ajuste_form = AjusteCantidadForm()
+    
+    context = {
+        'material': material,
+        'inventario': inventario,
+        'movimientos': movimientos,
+        'historico_costos': historico_costos,
+        'ajuste_form': ajuste_form,
+    }
+    return render(request, 'materiales/material_detalle.html', context)
+
+@login_required
+@permission_required('materiales.add_movimientoinventario', raise_exception=True)
+def ajustar_cantidad(request, pk):
+    material = get_object_or_404(Material, pk=pk)
+    inventario = Inventario.objects.filter(material=material).first()
+    
+    if not inventario:
+        inventario = Inventario.objects.create(
+            material=material,
+            cantidad_actual=0,
+            cantidad_minima=10,
+            cantidad_maxima=1000,
+            ubicacion='Almacén Principal',
+            actualizado_por=request.user
+        )
+    
+    if request.method == 'POST':
+        form = AjusteCantidadForm(request.POST)
+        if form.is_valid():
+            tipo_movimiento = form.cleaned_data['tipo_movimiento']
+            cantidad = form.cleaned_data['cantidad']
+            motivo = form.cleaned_data['motivo']
+            costo_unitario = form.cleaned_data['costo_unitario'] or 0
+            
+            # Determinar el tipo para el movimiento
+            if tipo_movimiento == 'entrada':
+                movimiento_tipo = 'entrada'
+                movimiento_origen = 'compra'
+            elif tipo_movimiento == 'salida':
+                movimiento_tipo = 'salida'
+                movimiento_origen = 'produccion'
+            else:
+                movimiento_tipo = 'ajuste'
+                movimiento_origen = 'ajuste_inventario'
+            
+            # Crear el movimiento
+            MovimientoInventario.objects.create(
+                inventario=inventario,
+                tipo=movimiento_tipo,
+                origen=movimiento_origen,
+                cantidad_movimiento=cantidad,
+                costo_unitario=costo_unitario,
+                motivo=motivo,
+                realizado_por=request.user
+            )
+            
+            messages.success(request, f'Cantidad de {material} actualizada exitosamente.')
+            return redirect('material_detalle', pk=material.pk)
+    
+    return redirect('material_detalle', pk=material.pk)
+
+@login_required
+def buscar_materiales(request):
+    query = request.GET.get('q', '')
+    
+    if query:
+        materiales = Material.objects.filter(
+            Q(nombre__icontains=query) |
+            Q(color__icontains=query) |
+            Q(codigo_color__icontains=query)
+        ).filter(activo=True)[:10]
+    else:
+        materiales = Material.objects.filter(activo=True)[:10]
+    
+    # Formatear para respuesta JSON
+    resultados = []
+    for material in materiales:
+        inventario = Inventario.objects.filter(material=material).first()
+        resultados.append({
+            'id': material.id,
+            'nombre': str(material),
+            'tipo': material.get_tipo_display(),
+            'unidad': material.unidad,
+            'stock': float(inventario.cantidad_actual) if inventario else 0,
+            'color': material.color or '',
+        })
+    
+    return JsonResponse({'resultados': resultados})
+
+@login_required
+def reporte_stock_colores(request):
+    # Agrupar stock por color
+    inventarios = Inventario.objects.filter(
+        activo=True,
+        material__color__isnull=False
+    ).select_related('material')
+    
+    # Agrupar por material y color
+    stock_por_color = {}
+    for inv in inventarios:
+        key = f"{inv.material.nombre}"
+        if key not in stock_por_color:
+            stock_por_color[key] = []
+        
+        stock_por_color[key].append({
+            'color': inv.material.color,
+            'stock': float(inv.cantidad_actual),
+            'unidad': inv.material.unidad,
+            'minimo': float(inv.cantidad_minima),
+        })
+    
+    context = {
+        'stock_por_color': stock_por_color,
+    }
+    return render(request, 'materiales/reporte_stock_colores.html', context)
