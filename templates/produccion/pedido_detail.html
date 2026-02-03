@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}Pedido {{ pedido.codigo }} - Taller Textil{% endblock %}
 {% block page_title %}Pedido: {{ pedido.codigo }}{% endblock %}
@@ -90,12 +91,6 @@
         
         <!-- Órdenes de producción relacionadas -->
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">Órdenes de Producción</h6>
-                <a href="{% url 'crear_orden_produccion' pedido_id=pedido.pk %}" class="btn btn-sm btn-primary">
-                    <i class="bi bi-plus-circle me-1"></i> Crear Orden
-                </a>
-            </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -115,14 +110,6 @@
                                 <td>{{ orden.codigo }}</td>
                                 <td>{{ orden.metodo.nombre }}</td>
                                 <td>{{ orden.fecha_programada|date:"d/m/Y" }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="progress progress-bar-custom flex-grow-1 me-2">
-                                            <div class="progress-bar bg-success" style="width: {{ orden.progreso }}%"></div>
-                                        </div>
-                                        <span class="small">{{ orden.progreso }}%</span>
-                                    </div>
-                                </td>
                                 <td>
                                     <span class="status-badge status-{{ orden.estado }}">
                                         {{ orden.get_estado_display }}
@@ -164,9 +151,6 @@
                         <i class="bi bi-arrow-repeat me-2"></i> Cambiar Estado
                     </button>
                     
-                            <a href="{% url 'crear_orden_produccion' pedido_id=pedido.pk %}" class="btn btn-success">
-                        <i class="bi bi-clipboard-plus me-2"></i> Crear Orden
-                    </a>
                 </div>
             </div>
         </div>
@@ -219,17 +203,15 @@
                         <small class="text-muted">es la fecha de entrega</small>
                         {% else %}
                         <span class="badge bg-danger me-2">Atrasado</span>
-                        <small class="text-muted">{{ pedido.dias_restantes|abs }} días de retraso</small>
+                        <small class="text-muted">
+                            {% if pedido.dias_restantes < 0 %}
+                                {{ pedido.dias_restantes|cut:"-" }} días de retraso
+                            {% else %}
+                                {{ pedido.dias_restantes }} días de retraso
+                            {% endif %}
+                        </small>
                         {% endif %}
                     </div>
-                </div>
-                
-                <div class="mb-3">
-                    <h6 class="small text-muted">Progreso total:</h6>
-                    <div class="progress progress-bar-custom mb-2">
-                        <div class="progress-bar bg-success" style="width: {{ pedido.progreso_total }}%"></div>
-                    </div>
-                    <small class="text-muted">{{ pedido.progreso_total|floatformat:1 }}% completado</small>
                 </div>
                 
                 <div class="mb-3">

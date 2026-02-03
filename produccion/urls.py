@@ -15,6 +15,7 @@ urlpatterns = [
     path('pedidos/<int:pk>/', PedidoDetailView.as_view(), name='pedido_detail'),
     path('pedidos/<int:pk>/editar/', PedidoUpdateView.as_view(), name='pedido_update'),
     path('pedidos/<int:pk>/cambiar-estado/', views.cambiar_estado_pedido, name='cambiar_estado_pedido'),
+    path('pedidos/<int:pk>/eliminar/', views.eliminar_pedido, name='eliminar_pedido'),
     
     # Órdenes de Producción (con lote integrado)
     path('ordenes-produccion/', OrdenProduccionListView.as_view(), name='ordenproduccion_list'),

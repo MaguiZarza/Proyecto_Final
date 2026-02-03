@@ -60,6 +60,41 @@
                 </thead>
                 <tbody>
                     {% for pedido in pedidos %}
+                    <!-- Modal de confirmación para eliminar pedido -->
+<div class="modal fade" id="eliminarPedidoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el pedido <strong>{{ pedido.codigo }}</strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <strong>Advertencia:</strong> Esta acción no se puede deshacer. Se eliminarán todos los datos relacionados con este pedido.
+                </div>
+                <p class="mb-0"><strong>Cliente:</strong> {{ pedido.cliente }}</p>
+                <p class="mb-0"><strong>Producto:</strong> {{ pedido.producto.nombre|default:"N/A" }}</p>
+                <p><strong>Cantidad:</strong> {{ pedido.cantidad }} unidades</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                </button>
+                <form method="post" action="{% url 'eliminar_pedido' pk=pedido.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Sí, Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
                     <tr>
                         <td>
                             <span class="fw-bold">{{ pedido.codigo }}</span>
@@ -98,8 +133,10 @@
                                 <a href="{% url 'pedido_update' pk=pedido.pk %}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a href="{% url 'cambiar_estado_pedido' pk=pedido.pk %}" class="btn btn-sm btn-outline-warning">
-                                    <i class="bi bi-arrow-repeat"></i>
+                                <a href="#" class="btn btn-sm btn-outline-danger" 
+                                    data-bs-toggle="modal" data-bs-target="#eliminarPedidoModal"
+                                    title="Eliminar pedido">
+                                    <i class="bi bi-trash"></i>
                                 </a>
                             </div>
                         </td>
