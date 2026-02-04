@@ -23,15 +23,31 @@
             --success-color: #27ae60;
             --warning-color: #f39c12;
             --light-bg: #f8f9fa;
+            /*Modo oscuro*/
+            --bg-main: #f5f7fa;
+            --bg-card: #ffffff;
+            --text-main: #212529;
+            --sidebar-bg: #2c3e50;
+            --navbar-bg: #ffffff;
         }
         
+        /* MODO OSCURO (azul oscuro) */
+        body.dark-mode {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #e5e7eb;
+            --sidebar-bg: #020617;
+            --navbar-bg: #020617;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            background-color: var(--bg-main);
+            color: var(--text-main);
         }
         
         .sidebar {
-            background: var(--primary-color);
+            background: var(--sidebar-bg);
             color: white;
             min-height: 100vh;
             position: fixed;
@@ -53,7 +69,7 @@
         }
         
         .navbar-custom {
-            background: white;
+            background: var(--navbar-bg);
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
         }
         
@@ -110,7 +126,7 @@
         }
         
         .table-hover tbody tr:hover {
-            background-color: rgba(52, 152, 219, 0.05);
+            background-color: rgba(217, 217, 217, 0.05);
         }
         
         .btn-action {
@@ -118,6 +134,16 @@
             font-size: 0.875rem;
         }
         
+        .table {
+            color: var(--text-main);
+        }
+
+        .card,
+        .card-header {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -404,6 +430,35 @@
         });
     </script>
     
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const darkRadio = document.getElementById("themeDark");
+        const lightRadio = document.getElementById("themeLight");
+
+        // aplicar tema guardado
+        const tema = localStorage.getItem("tema");
+        if (tema === "oscuro") {
+            document.body.classList.add("dark-mode");
+            if (darkRadio) darkRadio.checked = true;
+        } else {
+            if (lightRadio) lightRadio.checked = true;
+        }
+
+        if (darkRadio) {
+            darkRadio.addEventListener("change", function () {
+                document.body.classList.add("dark-mode");
+                localStorage.setItem("tema", "oscuro");
+            });
+        }
+
+        if (lightRadio) {
+            lightRadio.addEventListener("change", function () {
+                document.body.classList.remove("dark-mode");
+                localStorage.setItem("tema", "claro");
+            });
+        }
+    });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

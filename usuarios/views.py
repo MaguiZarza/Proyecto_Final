@@ -2,23 +2,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
 from django.contrib import messages
-from .forms import CustomUserCreationForm
 import traceback
 from django.contrib.auth.views import LoginView
-from .forms import EmailAuthenticationForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.shortcuts import redirect
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
-from django.contrib.auth.views import LoginView
-from django.contrib import messages
-from .forms import CustomUserCreationForm, EmailAuthenticationForm
-import traceback
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .forms import UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm
+from .forms import CustomUserCreationForm, EmailAuthenticationForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm, ProfileImageForm
 from .models import Profile
 
 
@@ -201,3 +189,20 @@ def perfil_view(request):
 def configuracion_view(request):
     """Vista de configuración general"""
     return render(request, 'usuarios/configuracion.html')
+
+@login_required
+def upload_profile_image(request):
+    try:
+        profile = request.user.profile
+    except Profile.DoesNotExist:
+        profile = Profile.objects.create(user=request.user)
+    
+    if request.method == 'POST':
+        form = ProfileImageForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = ProfileImageForm(instance=profile)
+    
+    return render(request, 'upload_image.html', {'form': form})
