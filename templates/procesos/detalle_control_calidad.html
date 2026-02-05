@@ -22,14 +22,6 @@
             <a href="{% url 'lista_controles_calidad' %}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left me-1"></i> Volver
             </a>
-            <a href="{% url 'agregar_detalle_control' control.id %}" class="btn btn-warning">
-                <i class="bi bi-plus-circle me-1"></i> Agregar Defecto
-            </a>
-            {% if control.resultado == 'reparacion' or control.resultado == 'rechazado' %}
-            <a href="{% url 'generar_no_conformidad' control.id %}" class="btn btn-danger">
-                <i class="bi bi-exclamation-triangle me-1"></i> No Conformidad
-            </a>
-            {% endif %}
         </div>
     </div>
 
@@ -165,29 +157,14 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        {% if control.cantidad_defectos > 0 %}
-                        <button type="button" class="btn btn-outline-info mb-2" data-bs-toggle="modal" data-bs-target="#modalDefectos">
-                            <i class="bi bi-eye me-1"></i> Ver Defectos ({{ control.cantidad_defectos }})
-                        </button>
-                        {% endif %}
                         
                         {% if user.is_superuser or user == control.inspector %}
                         <a href="{% url 'agregar_detalle_control' control.id %}" class="btn btn-warning mb-2">
                             <i class="bi bi-plus-circle me-1"></i> Agregar Defecto
                         </a>
                         
-                        {% if not control.revisado_por %}
-                        <button type="button" class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#modalRevisar">
-                            <i class="bi bi-check-circle me-1"></i> Marcar como Revisado
-                        </button>
                         {% endif %}
-                        {% endif %}
-                        
-                        {% if control.resultado == 'reparacion' or control.resultado == 'rechazado' %}
-                        <a href="{% url 'generar_no_conformidad' control.id %}" class="btn btn-danger mb-2">
-                            <i class="bi bi-exclamation-triangle me-1"></i> Generar No Conformidad
-                        </a>
-                        {% endif %}
+                                             
                         
                         <a href="{% url 'lista_controles_calidad' %}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-1"></i> Volver a la Lista

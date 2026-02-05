@@ -12,7 +12,7 @@ import csv
 from django.contrib.auth.models import User
 from .models import (
     Pedido, MetodoProduccion, OrdenProduccion, Planificacion, 
-    ReporteProduccion, PlanificacionOrden, EstadoTrazabilidad
+    ReporteProduccion, PlanificacionOrden, EstadoTrazabilidad, Producto
 )
 from .forms import PedidoForm, OrdenProduccionForm, PlanificacionForm, FiltroReporteForm, AvanceProduccionForm
 from procesos.models import Operacion, ControlCalidad

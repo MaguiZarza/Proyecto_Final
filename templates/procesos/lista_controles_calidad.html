@@ -167,12 +167,7 @@
                                        class="btn btn-outline-primary" title="Ver detalle">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    {% if control.resultado == 'reparacion' or control.resultado == 'rechazado' %}
-                                    <a href="{% url 'generar_no_conformidad' control.id %}" 
-                                       class="btn btn-outline-danger" title="Generar No Conformidad">
-                                        <i class="bi bi-exclamation-triangle"></i>
-                                    </a>
-                                    {% endif %}
+                                    
                                     {% if user.is_superuser or user == control.inspector %}
                                     <a href="{% url 'agregar_detalle_control' control.id %}" 
                                        class="btn btn-outline-warning" title="Agregar defecto">
