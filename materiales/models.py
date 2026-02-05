@@ -19,14 +19,54 @@ class Material(models.Model):
     nombre = models.CharField(max_length=100)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     unidad = models.CharField(max_length=20, default='unidad')
+    # Nuevos campos para colores
+    color = models.CharField(max_length=50, blank=True, null=True)
+    codigo_color = models.CharField(max_length=20, blank=True, null=True, help_text="Código interno del color")
     activo = models.BooleanField(default=True)
     
     def __str__(self):
+        if self.color:
+            return f"{self.nombre} - {self.color}"
         return self.nombre
     
     class Meta:
         verbose_name = 'Material'
         verbose_name_plural = 'Materiales'
+        unique_together = ['nombre', 'tipo', 'color']  # Evita duplicados
+
+class Tela(models.Model):
+    nombre = models.CharField(max_length=100)
+    color = models.CharField(max_length=50, blank=True, null=True)
+    codigo_color = models.CharField(max_length=20, blank=True, null=True)
+    tipo_tela = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: Algodón, Poliéster, etc.")
+    ancho = models.DecimalField(max_digits=5, decimal_places=2, default=1.5, help_text="Ancho en metros")
+    
+    def __str__(self):
+        if self.color:
+            return f"{self.nombre} - {self.color}"
+        return self.nombre
+    
+    class Meta:
+        verbose_name = 'Tela'
+        verbose_name_plural = 'Telas'
+        unique_together = ['nombre', 'color']
+
+class Hilo(models.Model):
+    nombre = models.CharField(max_length=100)
+    tipo = models.CharField(max_length=50)
+    color = models.CharField(max_length=50, blank=True, null=True)
+    codigo_color = models.CharField(max_length=20, blank=True, null=True)
+    metros_por_cono = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    def __str__(self):
+        if self.color:
+            return f"{self.nombre} - {self.color}"
+        return self.nombre
+    
+    class Meta:
+        verbose_name = 'Hilo'
+        verbose_name_plural = 'Hilos'
+        unique_together = ['nombre', 'color']
 
 class Formula(models.Model):
     # Usamos string para evitar dependencia circular
@@ -53,27 +93,17 @@ class FormulaDetalle(models.Model):
         verbose_name = 'Detalle de Fórmula'
         verbose_name_plural = 'Detalles de Fórmula'
 
-# ============ HILO Y TELA (modelos base existentes) ============ #
-class Hilo(models.Model):
-    nombre = models.CharField(max_length=100)
-    tipo = models.CharField(max_length=50)
-    metros_por_cono = models.DecimalField(max_digits=10, decimal_places=2)
-    
-    def __str__(self):
-        return self.nombre
-
-class Tela(models.Model):
-    nombre = models.CharField(max_length=100)
-    
-    def __str__(self):
-        return self.nombre
-
+# ============ CONFIGURACIONES DE MÁQUINA ============ #
 class ConfiguracionMaquina(models.Model):
     nombre = models.CharField(max_length=100)
     tipo_maquina = models.CharField(max_length=50)
     
     def __str__(self):
         return self.nombre
+    
+    class Meta:
+        verbose_name = 'Configuración de Máquina'
+        verbose_name_plural = 'Configuraciones de Máquina'
 
 class ConfiguracionHilo(models.Model):
     configuracion = models.ForeignKey(ConfiguracionMaquina, on_delete=models.CASCADE, related_name='hilos')
@@ -82,6 +112,10 @@ class ConfiguracionHilo(models.Model):
     
     def __str__(self):
         return f"{self.configuracion.nombre} - {self.hilo.nombre if self.hilo else 'Sin hilo'}"
+    
+    class Meta:
+        verbose_name = 'Configuración de Hilo'
+        verbose_name_plural = 'Configuraciones de Hilo'
 
 class ConsumoTela(models.Model):
     tela = models.ForeignKey(Tela, on_delete=models.CASCADE)
@@ -93,6 +127,10 @@ class ConsumoTela(models.Model):
     
     def calcular_consumo(self, metros_tela):
         return self.metros_hilo_por_metro_tela * metros_tela
+    
+    class Meta:
+        verbose_name = 'Consumo de Tela'
+        verbose_name_plural = 'Consumos de Tela'
 
 # ============ INVENTARIO ============ #
 class Inventario(models.Model):

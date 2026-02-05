@@ -3,14 +3,28 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import os
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono")
     company = models.CharField(max_length=100, blank=True, null=True, verbose_name="Compañía/Taller")
+    profile_image = models.ImageField(
+        upload_to='profile_images/',
+        blank=True,
+        null=True,
+        verbose_name="Foto de perfil",
+        default='profile_images/default.png'
+    )
     
     def __str__(self):
         return f"Perfil de {self.user.username}"
+    
+    def get_profile_image_url(self):
+        """Obtener URL de la imagen de perfil"""
+        if self.profile_image and hasattr(self.profile_image, 'url'):
+            return self.profile_image.url
+        return '/static/images/default_profile.png'
     
     class Meta:
         verbose_name = "Perfil"

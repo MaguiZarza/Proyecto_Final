@@ -1,14 +1,17 @@
 # usuarios/forms.py
+
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.models import User
-from .models import Profile
-import re
-from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth import authenticate
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
+
+from .models import Profile
+
+import re
+import os
+
+
 class CustomUserCreationForm(UserCreationForm):
     # Campos para el usuario
     first_name = forms.CharField(
@@ -20,7 +23,7 @@ class CustomUserCreationForm(UserCreationForm):
         }),
         label="Nombre (se mostrará en la aplicación)"
     )
-    
+
     last_name = forms.CharField(
         max_length=30,
         required=True,
@@ -30,7 +33,7 @@ class CustomUserCreationForm(UserCreationForm):
         }),
         label="Apellido"
     )
-    
+
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
@@ -40,7 +43,7 @@ class CustomUserCreationForm(UserCreationForm):
         label="Correo Electrónico (para iniciar sesión)",
         help_text="Usarás este correo para iniciar sesión"
     )
-    
+
     # Campos extras para el perfil
     phone = forms.CharField(
         max_length=20,
@@ -51,7 +54,7 @@ class CustomUserCreationForm(UserCreationForm):
         }),
         label="Teléfono"
     )
-    
+
     company = forms.CharField(
         max_length=100,
         required=False,
@@ -61,19 +64,17 @@ class CustomUserCreationForm(UserCreationForm):
         }),
         label="Taller/Compañía"
     )
-    
+
     class Meta:
         model = User
-        # IMPORTANTE: Incluimos username pero lo generaremos automáticamente
         fields = ('first_name', 'last_name', 'email', 'password1', 'password2')
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Remover el campo username del formulario (no lo mostramos al usuario)
+
         if 'username' in self.fields:
             del self.fields['username']
-        
-        # Personalizar los widgets de contraseña
+
         self.fields['password1'].widget.attrs.update({
             'class': 'form-control',
             'placeholder': 'Contraseña'
@@ -82,49 +83,41 @@ class CustomUserCreationForm(UserCreationForm):
             'class': 'form-control',
             'placeholder': 'Confirmar contraseña'
         })
-    
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("Este correo electrónico ya está registrado.")
         return email
-    
+
     def clean(self):
         cleaned_data = super().clean()
         email = cleaned_data.get('email', '')
         first_name = cleaned_data.get('first_name', '').strip()
-        
-        # Generar username automáticamente combinando nombre y email
+
         if email and first_name:
-            # Tomar el nombre sin espacios y en minúsculas
             clean_name = re.sub(r'[^a-zA-Z0-9]', '', first_name).lower()
-            
-            # Si el nombre es muy corto, usar parte del email
+
             if len(clean_name) < 3:
-                # Tomar la parte antes del @ del email
-                email_part = email.split('@')[0]
-                clean_name = email_part
-            
-            # Asegurar que el username sea único
+                clean_name = email.split('@')[0]
+
             base_username = clean_name
             username = base_username
             counter = 1
-            
+
             while User.objects.filter(username=username).exists():
                 username = f"{base_username}{counter}"
                 counter += 1
-                if counter > 100:  # Prevenir bucle infinito
+                if counter > 100:
                     username = f"user{User.objects.count() + 1}"
                     break
-            
+
             cleaned_data['username'] = username
-        
+
         return cleaned_data
-    
+
     def save(self, commit=True):
-        # Asegurar que tenemos un username
         if 'username' not in self.cleaned_data:
-            # Generar username de emergencia
             email = self.cleaned_data.get('email', '')
             if email:
                 base = email.split('@')[0]
@@ -134,33 +127,25 @@ class CustomUserCreationForm(UserCreationForm):
                     username = f"{base}{counter}"
                     counter += 1
                 self.cleaned_data['username'] = username
-        
+
         user = super().save(commit=False)
-        
-        # Configurar los campos del usuario
-        user.username = self.cleaned_data['username']  # Username generado
-        user.email = self.cleaned_data['email']        # Email (para login)
+
+        user.username = self.cleaned_data['username']
+        user.email = self.cleaned_data['email']
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
-        
+
         if commit:
             user.save()
-            
-            # Guardar los campos extras en el perfil
             profile, created = Profile.objects.get_or_create(user=user)
             profile.phone = self.cleaned_data.get('phone', '')
             profile.company = self.cleaned_data.get('company', '')
             profile.save()
-        
+
         return user
 
+
 class EmailAuthenticationForm(AuthenticationForm):
-    """
-    Formulario que permite iniciar sesión solo con correo electrónico.
-    Reemplaza el campo 'username' por 'email'.
-    """
-    
-    # Cambiamos el campo username para que sea email
     username = forms.EmailField(
         label="Correo Electrónico",
         widget=forms.EmailInput(attrs={
@@ -170,8 +155,7 @@ class EmailAuthenticationForm(AuthenticationForm):
         }),
         help_text="Ingresa tu correo electrónico registrado"
     )
-    
-    # Cambiamos el label del campo password
+
     password = forms.CharField(
         label="Contraseña",
         strip=False,
@@ -181,48 +165,38 @@ class EmailAuthenticationForm(AuthenticationForm):
             'placeholder': 'Tu contraseña'
         }),
     )
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Cambiar el label para mayor claridad
         self.fields['username'].label = "Correo Electrónico"
         self.fields['password'].label = "Contraseña"
-    
+
     def clean(self):
-        # Obtener el email (que está en el campo 'username')
         email = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
-        
+
         if email and password:
             try:
-                # Buscar el usuario por email
                 user_by_email = User.objects.get(email__iexact=email)
-                
-                # Intentar autenticar con el username real del usuario
+
                 user = authenticate(
                     request=self.request,
                     username=user_by_email.username,
                     password=password
                 )
-                
+
                 if user is None:
-                    # Si la contraseña es incorrecta
-                    raise ValidationError(
-                        "Correo electrónico o contraseña incorrectos."
-                    )
-                
-                # Si todo está bien, actualizamos el cleaned_data
+                    raise ValidationError("Correo electrónico o contraseña incorrectos.")
+
                 self.cleaned_data['username'] = user.username
                 self.user_cache = user
-                
+
             except User.DoesNotExist:
-                # Si no existe usuario con ese email
                 raise ValidationError(
-                    "No existe una cuenta con este correo electrónico. "
-                    "Regístrate primero."
+                    "No existe una cuenta con este correo electrónico. Regístrate primero."
                 )
+
             except User.MultipleObjectsReturned:
-                # En caso improbable de emails duplicados
                 users = User.objects.filter(email__iexact=email)
                 for user_obj in users:
                     user = authenticate(
@@ -235,8 +209,100 @@ class EmailAuthenticationForm(AuthenticationForm):
                         self.user_cache = user
                         break
                 else:
-                    raise ValidationError(
-                        "Correo electrónico o contraseña incorrectos."
-                    )
-        
+                    raise ValidationError("Correo electrónico o contraseña incorrectos.")
+
         return self.cleaned_data
+
+
+class UserUpdateForm(forms.ModelForm):
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Apellido'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'correo@ejemplo.com'
+            }),
+        }
+
+
+class ProfileUpdateForm(forms.ModelForm):
+    profile_image = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*'
+        }),
+        label="Foto de perfil"
+    )
+
+    class Meta:
+        model = Profile
+        fields = ['phone', 'company', 'profile_image']
+        widgets = {
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '+569 1234 5678'
+            }),
+            'company': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre de la compañía'
+            }),
+        }
+
+    def clean_profile_image(self):
+        image = self.cleaned_data.get('profile_image')
+
+        if image:
+            if image.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("La imagen es demasiado grande. Máximo 2MB.")
+
+            valid_extensions = ['.jpg', '.jpeg', '.png', '.gif']
+            ext = os.path.splitext(image.name)[1].lower()
+
+            if ext not in valid_extensions:
+                raise forms.ValidationError("Formato no válido. Usa JPG, PNG o GIF.")
+
+        return image
+
+
+class PasswordChangeCustomForm(PasswordChangeForm):
+    old_password = forms.CharField(
+        label="Contraseña actual",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+
+    new_password1 = forms.CharField(
+        label="Nueva contraseña",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+
+    new_password2 = forms.CharField(
+        label="Confirmar nueva contraseña",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+
+
+class ProfileImageForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['profile_image']
+        widgets = {
+            'profile_image': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+        }

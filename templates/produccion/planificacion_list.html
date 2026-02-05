@@ -1,112 +1,421 @@
+<!-- templates/produccion/planificacion_list.html -->
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Planificación - Taller Textil{% endblock %}
-{% block page_title %}Planificación de Producción{% endblock %}
+{% block title %}Planificaciones - Producción{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="btn-group" role="group">
-            <a href="{% url 'planificacion_list' %}" class="btn btn-outline-primary {% if not request.GET.tipo %}active{% endif %}">Todas</a>
-            <a href="?tipo=diaria" class="btn btn-outline-primary {% if request.GET.tipo == 'diaria' %}active{% endif %}">Diarias</a>
-            <a href="?tipo=semanal" class="btn btn-outline-primary {% if request.GET.tipo == 'semanal' %}active{% endif %}">Semanales</a>
-            <a href="?tipo=mensual" class="btn btn-outline-primary {% if request.GET.tipo == 'mensual' %}active{% endif %}">Mensuales</a>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Planificaciones</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Planificaciones</h2>
+                <div>
+                    <a href="{% url 'generar_planificacion_semanal' %}" class="btn btn-primary">
+                        <i class="fas fa-calendar-plus"></i> Nueva Planificación
+                    </a>
+                    <a href="{% url 'calendario' %}" class="btn btn-info">
+                        <i class="fas fa-calendar-alt"></i> Ver Calendario
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted">Gestiona las planificaciones semanales, mensuales y diarias</p>
         </div>
     </div>
-    <div class="col-md-4 text-end">
-        <a href="{% url 'generar_planificacion_semanal' %}" class="btn btn-success">
-            <i class="bi bi-magic me-2"></i> Generar Semanal
-        </a>
-        <a href="{% url 'calendario' %}" class="btn btn-primary">
-            <i class="bi bi-calendar-week me-2"></i> Ver Calendario
-        </a>
+
+    <!-- Filtros -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select name="tipo" id="tipo" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="semanal" {% if request.GET.tipo == 'semanal' %}selected{% endif %}>Semanal</option>
+                                <option value="mensual" {% if request.GET.tipo == 'mensual' %}selected{% endif %}>Mensual</option>
+                                <option value="diaria" {% if request.GET.tipo == 'diaria' %}selected{% endif %}>Diaria</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="activa" class="form-label">Estado</label>
+                            <select name="activa" id="activa" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="true" {% if request.GET.activa == 'true' %}selected{% endif %}>Activa</option>
+                                <option value="false" {% if request.GET.activa == 'false' %}selected{% endif %}>Inactiva</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="completada" class="form-label">Completada</label>
+                            <select name="completada" id="completada" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="true" {% if request.GET.completada == 'true' %}selected{% endif %}>Sí</option>
+                                <option value="false" {% if request.GET.completada == 'false' %}selected{% endif %}>No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="btn-group w-100">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter"></i> Filtrar
+                                </button>
+                                <a href="{% url 'planificacion_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">{{ planificaciones|length }}</h5>
+                            <p class="card-text">Total Planificaciones</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">{{ activas_count }}</h5>
+                            <p class="card-text">Planificaciones Activas</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-play-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">{{ completadas_count }}</h5>
+                            <p class="card-text">Completadas</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">{{ porcentaje_promedio }}%</h5>
+                            <p class="card-text">Progreso Promedio</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Planificaciones -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Lista de Planificaciones</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Tipo</th>
+                                    <th>Período</th>
+                                    <th>Órdenes</th>
+                                    <th>Estado</th>
+                                    <th>Progreso</th>
+                                    <th>Responsables</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for planificacion in planificaciones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ planificacion.nombre }}</strong>
+                                        {% if planificacion.descripcion %}
+                                        <br><small class="text-muted">{{ planificacion.descripcion|truncatechars:50 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if planificacion.tipo == 'semanal' %}bg-primary
+                                            {% elif planificacion.tipo == 'mensual' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ planificacion.get_tipo_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ planificacion.fecha_inicio|date:"d/m/Y" }}<br>
+                                        <small>al {{ planificacion.fecha_fin|date:"d/m/Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-dark">{{ planificacion.ordenes.count }}</span> órdenes
+                                    </td>
+                                    <td>
+                                        {% if planificacion.completada %}
+                                        <span class="badge bg-success">✅ Completada</span>
+                                        {% elif planificacion.activa %}
+                                        <span class="badge bg-info">🔄 Activa</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">⏸️ Inactiva</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1" style="height: 20px;">
+                                                <div class="progress-bar 
+                                                    {% if planificacion.porcentaje_completado >= 80 %}bg-success
+                                                    {% elif planificacion.porcentaje_completado >= 50 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                                    role="progressbar" 
+                                                    style="width: {{ planificacion.porcentaje_completado }}%"
+                                                    aria-valuenow="{{ planificacion.porcentaje_completado }}" 
+                                                    aria-valuemin="0" aria-valuemax="100">
+                                                    {{ planificacion.porcentaje_completado }}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% for responsable in planificacion.responsables.all|slice:":2" %}
+                                        <span class="badge bg-light text-dark mb-1">{{ responsable.username }}</span>
+                                        {% endfor %}
+                                        {% if planificacion.responsables.count > 2 %}
+                                        <span class="badge bg-secondary">+{{ planificacion.responsables.count|add:"-2" }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'planificacion_detail' planificacion.pk %}" 
+                                            class="btn btn-info" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-warning" title="Editar" disabled>
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger" title="Eliminar" disabled>
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                                            <h5>No hay planificaciones</h5>
+                                            <p>Crea tu primera planificación para comenzar</p>
+                                            <a href="{% url 'generar_planificacion_semanal' %}" class="btn btn-primary">
+                                                <i class="fas fa-calendar-plus"></i> Crear Planificación
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if planificaciones.has_other_pages %}
+                <div class="card-footer">
+                    <nav aria-label="Paginación">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if planificaciones.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ planificaciones.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in planificaciones.paginator.page_range %}
+                            {% if planificaciones.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if planificaciones.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ planificaciones.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+<!-- Opcional: Gráfico de estados de pedidos -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Distribución por Estado</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="estadosChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Distribución por Prioridad</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="prioridadesChart" width="400" height="200"></canvas>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row">
-    {% for planificacion in planificaciones %}
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">{{ planificacion.nombre|truncatechars:25 }}</h6>
-                <span class="badge {% if planificacion.activa %}bg-success{% else %}bg-secondary{% endif %}">
-                    {{ planificacion.get_tipo_display }}
-                </span>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>Periodo:</span>
-                        <span>{{ planificacion.fecha_inicio|date:"d/m" }} - {{ planificacion.fecha_fin|date:"d/m" }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>Órdenes:</span>
-                        <span>{{ planificacion.ordenes.count }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span>Responsables:</span>
-                        <span>{{ planificacion.responsables.count }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted">
-                        <span>Estado:</span>
-                        <span>
-                            {% if planificacion.completada %}
-                                <span class="badge bg-success">Completada</span>
-                            {% elif planificacion.activa %}
-                                <span class="badge bg-primary">Activa</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Inactiva</span>
-                            {% endif %}
-                        </span>
-                    </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Datos para el gráfico de estados
+    const estadosCtx = document.getElementById('estadosChart').getContext('2d');
+    const estadosChart = new Chart(estadosCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Completados', 'En Proceso', 'Pendientes'],
+            datasets: [{
+                data: [{{ pedidos_completados }}, {{ pedidos_en_proceso }}, {{ pedidos_pendientes }}],
+                backgroundColor: [
+                    '#28a745', // Verde para completados
+                    '#17a2b8', // Azul para en proceso
+                    '#ffc107'  // Amarillo para pendientes
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    
+    // Datos para el gráfico de prioridades (ejemplo - necesitarías agregar estas variables)
+    // const prioridadesCtx = document.getElementById('prioridadesChart').getContext('2d');
+    // ... similar al anterior
+});
+</script>
+    
+    <!-- Planificaciones Activas (Miniaturas) -->
+    {% if planificaciones_activas %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Planificaciones Activas</h5>
                 </div>
-                
-                {% if planificacion.comentarios %}
-                <p class="small text-muted mb-3">{{ planificacion.comentarios|truncatechars:100 }}</p>
-                {% endif %}
-                
-                <div class="progress progress-bar-custom mb-3">
-                    <div class="progress-bar bg-info" style="width: {{ planificacion.progreso }}%"></div>
-                </div>
-                <div class="d-flex justify-content-between small text-muted mb-3">
-                    <span>Progreso: {{ planificacion.progreso|floatformat:1 }}%</span>
-                    <span>{{ planificacion.ordenes_completadas }}/{{ planificacion.ordenes.count }} órdenes</span>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent">
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'planificacion_detail' pk=planificacion.pk %}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> Ver
-                    </a>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            Acciones
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Editar</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-printer me-2"></i>Imprimir</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text me-2"></i>Exportar</a></li>
-                            {% if not planificacion.completada %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-success" href="#"><i class="bi bi-check-circle me-2"></i>Marcar como completada</a></li>
-                            {% endif %}
-                        </ul>
+                <div class="card-body">
+                    <div class="row">
+                        {% for planificacion in planificaciones_activas %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">{{ planificacion.nombre|truncatechars:30 }}</h6>
+                                        <span class="badge bg-success">Activa</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Período:</strong><br>
+                                        {{ planificacion.fecha_inicio|date:"d/m/Y" }} al {{ planificacion.fecha_fin|date:"d/m/Y" }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Progreso:</strong>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {{ planificacion.porcentaje_completado }}%"
+                                                 aria-valuenow="{{ planificacion.porcentaje_completado }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ planificacion.porcentaje_completado }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <strong>Órdenes:</strong> {{ planificacion.ordenes.count }}
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{% url 'planificacion_detail' planificacion.pk %}" class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-eye"></i> Ver Detalles
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% empty %}
-    <div class="col-12">
-        <div class="text-center py-5">
-            <i class="bi bi-calendar-week display-1 text-muted"></i>
-            <h4 class="mt-4">No hay planificaciones</h4>
-            <p class="text-muted">Comienza generando una planificación semanal automática</p>
-            <a href="{% url 'generar_planificacion_semanal' %}" class="btn btn-primary">
-                <i class="bi bi-magic me-2"></i> Generar Planificación Semanal
-            </a>
-        </div>
-    </div>
-    {% endfor %}
+    {% endif %}
 </div>
+
+<style>
+.table th {
+    border-top: none;
+}
+.progress {
+    border-radius: 10px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Estadísticas dinámicas
+    function updateStats() {
+        // Puedes agregar actualizaciones AJAX aquí si es necesario
+    }
+    
+    // Inicializar
+    updateStats();
+});
+</script>
 {% endblock %}

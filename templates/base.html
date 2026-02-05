@@ -1,19 +1,15 @@
 <!-- templates/base.html -->
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema de Gestión de Taller{% endblock %}</title>
+    <title>{% block title %}Sistema de Gestión{% if empresa_nombre %} - {{ empresa_nombre }}{% endif %}{% endblock %}</title>
     
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <!-- Chart.js para gráficos -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SweetAlert2 para alertas -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
     <style>
         :root {
@@ -22,108 +18,130 @@
             --accent-color: #e74c3c;
             --success-color: #27ae60;
             --warning-color: #f39c12;
-            --light-bg: #f8f9fa;
+            --light-bg: #f8fafc;
+            --sidebar-bg: #1e293b;
+            --sidebar-active: #3b82f6;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --transition: all 0.3s ease;
         }
         
+        [data-bs-theme="dark"] {
+            --primary-color: #e2e8f0;
+            --secondary-color: #60a5fa;
+            --light-bg: #0f172a;
+            --sidebar-bg: #111827;
+            --sidebar-active: #2563eb;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--primary-color);
+            line-height: 1.6;
         }
-        
+
+        /* Sidebar */
         .sidebar {
-            background: var(--primary-color);
+            background: var(--sidebar-bg);
             color: white;
             min-height: 100vh;
-            position: fixed;
             width: 250px;
+            position: fixed;
             z-index: 1000;
         }
-        
-        .sidebar-sticky {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
+
+        .sidebar-brand {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+
+        .nav-section {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
+        }
+
+        .nav-link-sidebar {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 0.25rem 0.5rem;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .nav-link-sidebar:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-link-sidebar.active {
+            background: var(--sidebar-active);
+            color: white;
+        }
+
         .main-content {
             margin-left: 250px;
-            padding: 20px;
+            min-height: 100vh;
         }
-        
-        .navbar-custom {
+
+        /* Topbar */
+        .topbar {
             background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem 1.5rem;
         }
-        
-        .stat-card {
-            border-radius: 10px;
-            border: none;
-            transition: transform 0.3s;
-            height: 100%;
+
+        [data-bs-theme="dark"] .topbar {
+            background: #1e293b;
+            border-color: #334155;
         }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
+
+        /* Cards */
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
         }
-        
-        .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
+
+        [data-bs-theme="dark"] .card {
+            background: #1e293b;
+            border-color: #334155;
         }
-        
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .status-en-proceso { background-color: #d1ecf1; color: #0c5460; }
-        .status-pendiente { background-color: #fff3cd; color: #856404; }
-        .status-completado { background-color: #d4edda; color: #155724; }
-        .status-critico { background-color: #f8d7da; color: #721c24; }
-        
-        .priority-badge {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        
-        .priority-4 { background-color: #e74c3c; }
-        .priority-3 { background-color: #f39c12; }
-        .priority-2 { background-color: #3498db; }
-        .priority-1 { background-color: #27ae60; }
-        
-        .progress-bar-custom {
-            border-radius: 10px;
-            height: 10px;
-        }
-        
+
         .card-header {
-            background-color: white;
-            border-bottom: 2px solid #eee;
-            font-weight: 600;
+            border-bottom: 1px solid #e5e7eb;
+            background: transparent;
         }
-        
-        .table-hover tbody tr:hover {
-            background-color: rgba(52, 152, 219, 0.05);
+
+        [data-bs-theme="dark"] .card-header {
+            border-color: #334155;
         }
-        
-        .btn-action {
-            padding: 5px 10px;
-            font-size: 0.875rem;
-        }
-        
+
+        /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
-                height: auto;
                 position: relative;
+                min-height: auto;
             }
+            
             .main-content {
                 margin-left: 0;
             }
@@ -135,191 +153,96 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar d-none d-md-block">
-        <div class="sidebar-sticky pt-3">
-            <!-- Logo y nombre del sistema -->
-            <div class="text-center mb-4">
-                <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                    <i class="bi bi-gear-fill text-primary fs-3"></i>
+        <div class="sidebar-sticky">
+            <!-- Logo y nombre de la empresa -->
+            <div class="sidebar-brand d-flex align-items-center">
+                <div class="brand-logo">
+                    <i class="bi bi-gear-fill text-white"></i>
                 </div>
-                <h5 class="mt-2">Taller Textil</h5>
-                <p class="text-muted small">Sistema de Gestión</p>
+                <div>
+                    <h6 class="mb-0">{{ empresa_nombre|default:"Taller Textil" }}</h6>
+                    <small class="text-muted">Sistema de Gestión</small>
+                </div>
             </div>
-            
-            <!-- Menú de navegación -->
-            <ul class="nav flex-column">
-                
-                
-                <!-- Producción -->
-                <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Producción</small>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'pedido_list' %}">
-                        <i class="bi bi-cart me-2"></i> Pedidos
-                    </a>
-                </li>
-                <!-- Comentado temporalmente: Órdenes de Producción -->
-                <!--
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'ordenproduccion_list' %}">
-                        <i class="bi bi-clipboard-check me-2"></i> Órdenes
-                    </a>
-                </li>
-                -->
-                <!-- Comentado temporalmente: Planificación -->
-                
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'planificacion_list' %}">
-                        <i class="bi bi-calendar-week me-2"></i> Planificación
-                    </a>
-                </li>
-                
-                
-                <!-- Sección de Lotes COMENTADA COMPLETA -->
-                <!--
-                <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Lotes</small>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'dashboard_lotes' %}">
-                        <i class="bi bi-box-seam me-2"></i> Dashboard Lotes
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'lista_lotes' %}">
-                        <i class="bi bi-list-ul me-2"></i> Lista de Lotes
-                    </a>
-                </li>
-                -->
-                
-                <!-- Materiales -->
-                <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Materiales</small>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'inventario_lista' %}">
-                        <i class="bi bi-boxes me-2"></i> Inventario
-                    </a>
-                </li>
-                <!-- Alertas: Comentado del nav pero manteniendo la función -->
-                <!--
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'alertas_stock' %}">
-                        <i class="bi bi-exclamation-triangle me-2"></i> Alertas
-                    </a>
-                </li>
-                -->
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'calculadora_hilo' %}">
-                        <i class="bi bi-calculator me-2"></i> Calculadoras
-                    </a>
-                </li>
-                
-                <!-- Sección de Procesos COMENTADA COMPLETA -->
-                
-                <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Procesos</small>
-                </li>
-                <!--<li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'dashboard_procesos' %}">
-                        <i class="bi bi-diagram-3 me-2"></i> Dashboard Procesos
-                    </a>
-                </li>-->
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'lista_tiempos' %}">
-                        <i class="bi bi-stopwatch me-2"></i> Temporizador
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'lista_controles_calidad' %}">
-                        <i class="bi bi-clipboard-data me-2"></i> Control Calidad
-                    </a>
-                </li>
-                <!---->
-                
-                <!-- Reportes -->
-                <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Estadísticas</small>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.path == '/' %}bg-secondary rounded{% endif %}" href="{% url 'dashboard' %}">
-                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'reportes_produccion' %}">
-                        <i class="bi bi-bar-chart me-2"></i> Reportes Producción
-                    </a>
-                </li>
-                <!-- Comentado: Reportes de Lotes -->
-                <!--
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'reporte_estado_lotes' %}">
-                        <i class="bi bi-pie-chart me-2"></i> Reportes Lotes
-                    </a>
-                </li>
-                -->
-                
-                <!-- Nueva sección: Configuración -->
-                <li class="nav-item mt-3">
-                    <small class="text-uppercase text-muted">Configuración</small>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'admin:index' %}" target="_blank">
-                        <i class="bi bi-gear me-2"></i> Administración
-                    </a>
-                </li>
-            </ul>
-            
-            
+
+            <!-- Navegación -->
+            <div class="sidebar-nav mt-3">
+                <div class="nav-section">PRODUCCIÓN</div>
+                <a class="nav-link-sidebar {% if 'pedido' in request.path %}active{% endif %}" href="{% url 'pedido_list' %}">
+                    <i class="bi bi-cart me-2"></i> Pedidos
+                </a>
+                <a class="nav-link-sidebar {% if 'planificacion' in request.path %}active{% endif %}" href="{% url 'planificacion_list' %}">
+                    <i class="bi bi-calendar-week me-2"></i> Planificación
+                </a>
+
+                <div class="nav-section mt-3">MATERIALES</div>
+                <a class="nav-link-sidebar {% if 'materiales' in request.path %}active{% endif %}" href="{% url 'materiales_lista' %}">
+                    <i class="bi bi-boxes me-2"></i> Inventario
+                </a>
+                <a class="nav-link-sidebar {% if 'calculadora' in request.path %}active{% endif %}" href="{% url 'calculadora_hilo' %}">
+                    <i class="bi bi-calculator me-2"></i> Calculadoras
+                </a>
+
+                <div class="nav-section mt-3">PROCESOS</div>
+                <a class="nav-link-sidebar {% if 'tiempos' in request.path %}active{% endif %}" href="{% url 'lista_tiempos' %}">
+                    <i class="bi bi-stopwatch me-2"></i> Temporizador
+                </a>
+                <a class="nav-link-sidebar {% if 'controles' in request.path %}active{% endif %}" href="{% url 'lista_controles_calidad' %}">
+                    <i class="bi bi-clipboard-check me-2"></i> Control Calidad
+                </a>
+
+                <div class="nav-section mt-3">ESTADÍSTICAS</div>
+                <a class="nav-link-sidebar {% if request.path == '/' %}active{% endif %}" href="{% url 'dashboard' %}">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+                <a class="nav-link-sidebar {% if 'reportes' in request.path %}active{% endif %}" href="{% url 'reportes_produccion' %}">
+                    <i class="bi bi-bar-chart me-2"></i> Reportes
+                </a>
+
+                <div class="nav-section mt-3">CONFIGURACIÓN</div>
+                <a class="nav-link-sidebar" href="{% url 'admin:index' %}" target="_blank">
+                    <i class="bi bi-gear me-2"></i> Administración
+                </a>
+            </div>
         </div>
     </div>
-    
+
     <!-- Contenido principal -->
     <div class="main-content">
-        <!-- Barra superior -->
-        <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+        <!-- Topbar -->
+        <nav class="topbar">
             <div class="container-fluid">
-                <!-- Botón para mostrar/ocultar sidebar en móviles -->
-                <button class="btn btn-outline-secondary d-md-none" type="button" id="sidebarToggle">
-                    <i class="bi bi-list"></i>
-                </button>
-                
-                <!-- Título de la página -->
-                <div class="navbar-brand">
-                    <h4 class="mb-0">{% block page_title %}Dashboard{% endblock %}</h4>
-                </div>
-                
-                <!-- Notificaciones y usuario -->
-                <div class="d-flex align-items-center">
-                    <!-- Notificaciones -->
-                    <div class="dropdown me-3">
-                        <button class="btn btn-outline-secondary position-relative" type="button" id="notificationsDropdown" data-bs-toggle="dropdown">
-                            <i class="bi bi-bell"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notification-count">
-                                0
-                            </span>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-outline-secondary d-md-none me-2" id="sidebarToggle">
+                            <i class="bi bi-list"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                            <li><h6 class="dropdown-header">Notificaciones</h6></li>
-                            <li><div class="dropdown-item text-muted">No hay notificaciones</div></li>
-                        </ul>
+                        <h5 class="mb-0">{% block page_title %}Dashboard{% endblock %}</h5>
                     </div>
                     
-                    <!-- Usuario -->
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1"></i>
-                            {% if user.is_authenticated %}
-                                {{ user.get_short_name|default:user.username }}
-                            {% else %}
-                                Usuario
-                            {% endif %}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            {% if user.is_authenticated %}
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Usuario -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-2"></i>
+                                {% if user.is_authenticated %}
+                                    {{ user.get_short_name|default:user.username }}
+                                {% else %}
+                                    Usuario
+                                {% endif %}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user.is_authenticated %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'perfil' %}">
+                                        <i class="bi bi-person me-2"></i>Mi perfil
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'configuracion' %}">
+                                        <i class="bi bi-gear me-2"></i>Configuración
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="post" action="{% url 'logout' %}" class="d-inline">
@@ -329,85 +252,99 @@
                                         </button>
                                     </form>
                                 </li>
-                            {% else %}
-                                <li><a class="dropdown-item" href="{% url 'admin:login' %}">Iniciar sesión</a></li>
-                            {% endif %}
-                        </ul>
+                                {% else %}
+                                <li><a class="dropdown-item" href="{% url 'login' %}">Iniciar sesión</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </nav>
-        
-        <!-- Mensajes de Django -->
+
+        <!-- Mensajes -->
         {% if messages %}
-            <div class="messages mb-4">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
+        <div class="container-fluid mt-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+            {% endfor %}
+        </div>
         {% endif %}
-        
-        <!-- Contenido de la página -->
-        <div class="container-fluid">
+
+        <!-- Contenido -->
+        <div class="container-fluid py-3">
             {% block content %}
             {% endblock %}
         </div>
-        
+
         <!-- Footer -->
-        <footer class="mt-5 pt-4 border-top">
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="text-muted">
-                        <i class="bi bi-c-circle"></i> {% now "Y" %} Taller Textil - Sistema de Gestión
-                    </p>
-                </div>
-                <div class="col-md-6 text-end">
-                    <p class="text-muted">
-                        <i class="bi bi-clock"></i> {% now "d/m/Y H:i" %}
-                    </p>
+        <footer class="mt-4 pt-3 border-top">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="text-muted">
+                            <i class="bi bi-c-circle"></i> {% now "Y" %} {{ empresa_nombre|default:"Taller Textil" }}
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p class="text-muted">
+                            <i class="bi bi-clock"></i> {% now "d/m/Y H:i" %}
+                            {% if user.is_authenticated %}
+                                <span class="mx-2">|</span>
+                                <i class="bi bi-person"></i> {{ user.get_full_name|default:user.username }}
+                            {% endif %}
+                        </p>
+                    </div>
                 </div>
             </div>
         </footer>
     </div>
-    
+
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         // Toggle sidebar en móviles
         document.getElementById('sidebarToggle').addEventListener('click', function() {
             document.querySelector('.sidebar').classList.toggle('d-none');
         });
-        
-        // Actualizar notificaciones cada 30 segundos
-        function updateNotifications() {
-            fetch('{% url "api_inventario_datos" %}')
-                .then(response => response.json())
-                .then(data => {
-                    // Actualizar contador de alertas
-                    let alertCount = 0;
-                    if (data.alertas_activas) {
-                        alertCount = data.alertas_activas;
-                    }
-                    document.getElementById('notification-count').textContent = alertCount;
-                    
-                    if (alertCount > 0) {
-                        document.getElementById('notification-count').classList.remove('d-none');
-                    } else {
-                        document.getElementById('notification-count').classList.add('d-none');
-                    }
-                });
-        }
-        
-        // Actualizar cada 30 segundos
-        setInterval(updateNotifications, 30000);
-        
-        // Inicializar
+
+        // Toggle tema oscuro/claro
         document.addEventListener('DOMContentLoaded', function() {
-            updateNotifications();
+            const themeToggle = document.createElement('button');
+            themeToggle.className = 'btn btn-outline-secondary ms-2';
+            themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
+            themeToggle.id = 'themeToggle';
+            
+            document.querySelector('.topbar .d-flex:last-child').prepend(themeToggle);
+            
+            themeToggle.addEventListener('click', function() {
+                const html = document.documentElement;
+                const icon = this.querySelector('i');
+                
+                if (html.getAttribute('data-bs-theme') === 'dark') {
+                    html.setAttribute('data-bs-theme', 'light');
+                    icon.className = 'bi bi-moon';
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    html.setAttribute('data-bs-theme', 'dark');
+                    icon.className = 'bi bi-sun';
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+
+            // Cargar tema guardado
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            const themeToggleIcon = document.querySelector('#themeToggle i');
+            
+            html.setAttribute('data-bs-theme', savedTheme);
+            if (themeToggleIcon) {
+                themeToggleIcon.className = savedTheme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+            }
         });
     </script>
     

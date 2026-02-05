@@ -1,0 +1,526 @@
+<!-- templates/produccion/planificacion_detail.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ planificacion.nombre }} - Detalle{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'planificacion_list' %}">Planificaciones</a></li>
+                    <li class="breadcrumb-item active">{{ planificacion.nombre|truncatechars:30 }}</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-0">{{ planificacion.nombre }}</h2>
+                    <p class="text-muted mb-0">
+                        {{ planificacion.fecha_inicio|date:"d/m/Y" }} al {{ planificacion.fecha_fin|date:"d/m/Y" }}
+                        • {{ planificacion.get_tipo_display }}
+                    </p>
+                </div>
+                <div>
+                    <span class="badge {% if planificacion.completada %}bg-success
+                                      {% elif planificacion.activa %}bg-info
+                                      {% else %}bg-secondary{% endif %} fs-6">
+                        {% if planificacion.completada %}✅ Completada
+                        {% elif planificacion.activa %}🔄 Activa
+                        {% else %}⏸️ Inactiva{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información General -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Información de la Planificación</h5>
+                    <div>
+                        <a href="{% url 'planificacion_editar' planificacion.pk %}" class="btn btn-sm btn-light">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Detalles</h6>
+                            <p><strong>Período:</strong> {{ planificacion.fecha_inicio|date:"d/m/Y" }} - {{ planificacion.fecha_fin|date:"d/m/Y" }}</p>
+                            <p><strong>Duración:</strong> {{ planificacion.duracion_dias }} días</p>
+                            <p><strong>Tipo:</strong> {{ planificacion.get_tipo_display }}</p>
+                            <p><strong>Creada por:</strong> {{ planificacion.creado_por.get_full_name|default:planificacion.creado_por.username }}</p>
+                            <p><strong>Fecha creación:</strong> {{ planificacion.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Estadísticas</h6>
+                            <p><strong>Órdenes asignadas:</strong> {{ planificacion.ordenes.count }}</p>
+                            <p><strong>Progreso:</strong></p>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar {% if planificacion.porcentaje_completado >= 80 %}bg-success
+                                                         {% elif planificacion.porcentaje_completado >= 50 %}bg-warning
+                                                         {% else %}bg-danger{% endif %}"
+                                                     role="progressbar" 
+                                                     style="width: {{ planificacion.porcentaje_completado }}%"
+                                                     aria-valuenow="{{ planificacion.porcentaje_completado }}" 
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                    {{ planificacion.porcentaje_completado }}%
+                                </div>
+                            </div>
+                            <p><strong>Responsables:</strong></p>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for responsable in responsables %}
+                                <span class="badge bg-light text-dark">{{ responsable.get_full_name|default:responsable.username }}</span>
+                                {% empty %}
+                                <span class="badge bg-secondary">Sin responsables asignados</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if planificacion.descripcion %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Descripción</h6>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    {{ planificacion.descripcion|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if planificacion.objetivos %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Objetivos</h6>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    {{ planificacion.objetivos|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Acciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'planificacion_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver a la lista
+                        </a>
+                        
+                        {% if not planificacion.completada %}
+                        <form method="post" action="{% url 'planificacion_completar' planificacion.pk %}" class="d-grid">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success" 
+                                    onclick="return confirm('¿Estás seguro de marcar esta planificación como completada?')">
+                                <i class="fas fa-check"></i> Marcar como Completada
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{% url 'planificacion_activar_desactivar' planificacion.pk %}" class="d-grid">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning" 
+                                    onclick="return confirm('¿Estás seguro de cambiar el estado de esta planificación?')">
+                                {% if planificacion.activa %}
+                                <i class="fas fa-pause"></i> Pausar Planificación
+                                {% else %}
+                                <i class="fas fa-play"></i> Activar Planificación
+                                {% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <form method="post" action="{% url 'planificacion_eliminar' planificacion.pk %}" class="d-grid">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" 
+                                    onclick="return confirm('⚠️ ¿Estás seguro de eliminar esta planificación?\\n\\nEsta acción eliminará todas las asignaciones asociadas y no se puede deshacer.')">
+                                <i class="fas fa-trash"></i> Eliminar Planificación
+                            </button>
+                        </form>
+                        
+                        <a href="{% url 'planificacion_editar' planificacion.pk %}" class="btn btn-outline-primary">
+                            <i class="fas fa-edit"></i> Editar Planificación
+                        </a>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Agregar orden a la planificación -->
+                    <div class="mt-3">
+                        <h6 class="mb-2">Agregar Orden</h6>
+                        <form method="post" action="{% url 'planificacion_agregar_orden' planificacion.pk %}" class="row g-2">
+                            {% csrf_token %}
+                            <div class="col-12">
+                                <select name="orden_id" class="form-select form-select-sm" required>
+                                    <option value="">Seleccionar orden...</option>
+                                    {% for orden in ordenes_disponibles %}
+                                    <option value="{{ orden.id }}">
+                                        {{ orden.codigo }} - {{ orden.pedido.cliente }} - {{ orden.pedido.producto.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="date" name="fecha_asignada" class="form-control form-control-sm" 
+                                       value="{{ planificacion.fecha_inicio|date:'Y-m-d' }}" required>
+                            </div>
+                            <div class="col-6">
+                                <select name="turno" class="form-select form-select-sm" required>
+                                    <option value="manana">Mañana</option>
+                                    <option value="tarde">Tarde</option>
+                                    <option value="noche">Noche</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-sm btn-success w-100">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Información:</strong><br>
+                        <small>
+                            • Planificación {{ planificacion.get_tipo_display|lower }}<br>
+                            • {{ planificacion.duracion_dias }} días de trabajo<br>
+                            • Última actualización: {{ planificacion.fecha_actualizacion|date:"d/m/Y H:i" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendario de Planificación -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Calendario de Producción</h5>
+                    <span class="badge bg-light text-dark">{{ asignaciones.count }} asignaciones</span>
+                </div>
+                <div class="card-body">
+                    {% if asignaciones_por_fecha %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Turno Mañana</th>
+                                    <th>Turno Tarde</th>
+                                    <th>Turno Noche</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fecha_str, data in asignaciones_por_fecha.items %}
+                                <tr>
+                                    <td style="width: 15%">
+                                        <strong>{{ data.fecha|date:"l" }}</strong><br>
+                                        <small>{{ data.fecha|date:"d/m/Y" }}</small>
+                                    </td>
+                                    <td style="width: 28%">
+                                        {% for asignacion in data.turno_manana %}
+                                        <div class="card mb-2">
+                                            <div class="card-body py-2">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <small>
+                                                            <strong>{{ asignacion.orden.codigo }}</strong><br>
+                                                            {{ asignacion.orden.pedido.cliente }}<br>
+                                                            <span class="badge bg-primary">{{ asignacion.orden.pedido.producto.nombre }}</span>
+                                                            <span class="badge bg-warning">Prioridad: {{ asignacion.prioridad }}</span>
+                                                        </small>
+                                                    </div>
+                                                    <form method="post" action="{% url 'planificacion_remover_orden' planificacion.pk %}" 
+                                                          class="ms-2">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="orden_id" value="{{ asignacion.orden.id }}">
+                                                        <button type="submit" class="btn btn-sm btn-danger" 
+                                                                onclick="return confirm('¿Remover esta orden de la planificación?')"
+                                                                title="Remover orden">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="fas fa-calendar-times"></i><br>
+                                            <small>Sin asignaciones</small>
+                                        </div>
+                                        {% endfor %}
+                                    </td>
+                                    <td style="width: 28%">
+                                        {% for asignacion in data.turno_tarde %}
+                                        <div class="card mb-2">
+                                            <div class="card-body py-2">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <small>
+                                                            <strong>{{ asignacion.orden.codigo }}</strong><br>
+                                                            {{ asignacion.orden.pedido.cliente }}<br>
+                                                            <span class="badge bg-primary">{{ asignacion.orden.pedido.producto.nombre }}</span>
+                                                            <span class="badge bg-warning">Prioridad: {{ asignacion.prioridad }}</span>
+                                                        </small>
+                                                    </div>
+                                                    <form method="post" action="{% url 'planificacion_remover_orden' planificacion.pk %}" 
+                                                          class="ms-2">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="orden_id" value="{{ asignacion.orden.id }}">
+                                                        <button type="submit" class="btn btn-sm btn-danger" 
+                                                                onclick="return confirm('¿Remover esta orden de la planificación?')"
+                                                                title="Remover orden">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="fas fa-calendar-times"></i><br>
+                                            <small>Sin asignaciones</small>
+                                        </div>
+                                        {% endfor %}
+                                    </td>
+                                    <td style="width: 28%">
+                                        {% for asignacion in data.turno_noche %}
+                                        <div class="card mb-2">
+                                            <div class="card-body py-2">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <small>
+                                                            <strong>{{ asignacion.orden.codigo }}</strong><br>
+                                                            {{ asignacion.orden.pedido.cliente }}<br>
+                                                            <span class="badge bg-primary">{{ asignacion.orden.pedido.producto.nombre }}</span>
+                                                            <span class="badge bg-warning">Prioridad: {{ asignacion.prioridad }}</span>
+                                                        </small>
+                                                    </div>
+                                                    <form method="post" action="{% url 'planificacion_remover_orden' planificacion.pk %}" 
+                                                          class="ms-2">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="orden_id" value="{{ asignacion.orden.id }}">
+                                                        <button type="submit" class="btn btn-sm btn-danger" 
+                                                                onclick="return confirm('¿Remover esta orden de la planificación?')"
+                                                                title="Remover orden">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="fas fa-calendar-times"></i><br>
+                                            <small>Sin asignaciones</small>
+                                        </div>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>No hay asignaciones programadas</h5>
+                        <p class="text-muted">Agrega órdenes desde el panel de acciones.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista Detallada de Órdenes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">Órdenes Asignadas ({{ asignaciones.count }})</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if asignaciones %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Orden</th>
+                                    <th>Pedido</th>
+                                    <th>Cliente</th>
+                                    <th>Producto</th>
+                                    <th>Fecha Asignada</th>
+                                    <th>Turno</th>
+                                    <th>Prioridad</th>
+                                    <th>Estado Orden</th>
+                                    <th>Progreso</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asignacion in asignaciones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ asignacion.orden.codigo }}</strong>
+                                    </td>
+                                    <td>{{ asignacion.orden.pedido.codigo }}</td>
+                                    <td>{{ asignacion.orden.pedido.cliente }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ asignacion.orden.pedido.producto.nombre }}</span>
+                                    </td>
+                                    <td>{{ asignacion.fecha_asignada|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ asignacion.get_turno_display }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if asignacion.prioridad >= 4 %}bg-danger
+                                            {% elif asignacion.prioridad == 3 %}bg-warning
+                                            {% elif asignacion.prioridad == 2 %}bg-primary
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ asignacion.prioridad }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if asignacion.orden.estado == 'completada' %}bg-success
+                                            {% elif asignacion.orden.estado == 'en_proceso' %}bg-info
+                                            {% elif asignacion.orden.estado == 'pausada' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ asignacion.orden.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px; width: 100px;">
+                                            <div class="progress-bar 
+                                                {% if asignacion.orden.progreso >= 80 %}bg-success
+                                                {% elif asignacion.orden.progreso >= 50 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                 role="progressbar" 
+                                                 style="width: {{ asignacion.orden.progreso }}%"
+                                                 aria-valuenow="{{ asignacion.orden.progreso }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ asignacion.orden.progreso }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'ordenproduccion_detail' asignacion.orden.pk %}" 
+                                               class="btn btn-info" title="Ver Orden">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'pedido_detail' asignacion.orden.pedido.pk %}" 
+                                               class="btn btn-primary" title="Ver Pedido">
+                                                <i class="fas fa-file-invoice"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'planificacion_remover_orden' planificacion.pk %}" 
+                                                  style="display: inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="orden_id" value="{{ asignacion.orden.id }}">
+                                                <button type="submit" class="btn btn-danger" 
+                                                        onclick="return confirm('¿Remover esta orden de la planificación?')"
+                                                        title="Remover orden">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <h5>No hay órdenes asignadas</h5>
+                        <p class="text-muted">Agrega órdenes a esta planificación desde el panel de acciones.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Función para confirmar acciones
+function confirmAction(message, form) {
+    if (confirm(message)) {
+        form.submit();
+    }
+    return false;
+}
+
+// Actualizar automáticamente el formulario de agregar orden
+document.addEventListener('DOMContentLoaded', function() {
+    // Prevenir envío doble de formularios
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+.badge {
+    font-size: 0.85em;
+}
+.progress {
+    border-radius: 10px;
+}
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}

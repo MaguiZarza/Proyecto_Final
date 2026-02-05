@@ -3,6 +3,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import registro, CustomLoginView
+from .views import perfil_view, configuracion_view
 
 urlpatterns = [
     # Rutas básicas de autenticación
@@ -40,4 +41,6 @@ urlpatterns = [
              template_name='usuarios/password_reset_complete.html'
          ), 
          name='password_reset_complete'),
+    path('perfil/', perfil_view, name='perfil'),
+    path('configuracion/', configuracion_view, name='configuracion'),
 ]

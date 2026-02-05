@@ -10,9 +10,12 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 import csv
 from django.contrib.auth.models import User
-from .models import Pedido, MetodoProduccion, OrdenProduccion, Planificacion, ReporteProduccion, PlanificacionOrden
+from .models import (
+    Pedido, MetodoProduccion, OrdenProduccion, Planificacion, 
+    ReporteProduccion, PlanificacionOrden, EstadoTrazabilidad
+)
 from .forms import PedidoForm, OrdenProduccionForm, PlanificacionForm, FiltroReporteForm, AvanceProduccionForm
-from procesos.models import Operacion
+from procesos.models import Operacion, ControlCalidad
 
 # ============ DASHBOARD MEJORADO ============ #
 @login_required
@@ -34,6 +37,12 @@ def dashboard(request):
         fecha_fin__date=hoy
     ).count()
     
+    # Estadísticas de lotes (nuevo)
+    total_lotes = OrdenProduccion.objects.count()
+    lotes_en_produccion = OrdenProduccion.objects.filter(estado='en_proceso').count()
+    lotes_pendientes_calidad = OrdenProduccion.objects.filter(resultado_control_calidad='pendiente', estado='completada').count()
+    lotes_aprobados = OrdenProduccion.objects.filter(resultado_control_calidad='aprobado').count()
+    
     # Planificaciones activas
     planificaciones_activas = Planificacion.objects.filter(activa=True, completada=False).count()
     
@@ -54,6 +63,9 @@ def dashboard(request):
     ordenes_en_progreso = OrdenProduccion.objects.filter(
         estado='en_proceso'
     ).order_by('fecha_programada')[:5]
+    
+    # Lotes recientes (nuevo)
+    lotes_recientes = OrdenProduccion.objects.all().order_by('-fecha_creacion')[:5]
     
     # Planificaciones próximas
     planificaciones_proximas = Planificacion.objects.filter(
@@ -80,9 +92,14 @@ def dashboard(request):
         'pedidos_urgentes': pedidos_urgentes,
         'ordenes_activas': ordenes_activas,
         'ordenes_completadas_hoy': ordenes_completadas_hoy,
+        'total_lotes': total_lotes,
+        'lotes_en_produccion': lotes_en_produccion,
+        'lotes_pendientes_calidad': lotes_pendientes_calidad,
+        'lotes_aprobados': lotes_aprobados,
         'planificaciones_activas': planificaciones_activas,
         'pedidos_recientes': pedidos_recientes,
         'ordenes_en_progreso': ordenes_en_progreso,
+        'lotes_recientes': lotes_recientes,
         'planificaciones_proximas': planificaciones_proximas,
         'pedidos_por_estado': pedidos_por_estado,
         'operaciones_recientes': operaciones_recientes,
@@ -106,6 +123,7 @@ class PedidoListView(LoginRequiredMixin, ListView):
         cliente = self.request.GET.get('cliente')
         fecha_desde = self.request.GET.get('fecha_desde')
         fecha_hasta = self.request.GET.get('fecha_hasta')
+        orden_fecha = self.request.GET.get('orden_fecha', 'cercana')  # Nuevo: orden por fecha
         
         if estado:
             queryset = queryset.filter(estado=estado)
@@ -118,12 +136,35 @@ class PedidoListView(LoginRequiredMixin, ListView):
         if fecha_hasta:
             queryset = queryset.filter(fecha_entrega__lte=fecha_hasta)
         
+        # Ordenar por fecha
+        if orden_fecha == 'cercana':
+            # Más cercana primero (próximas a vencer)
+            queryset = queryset.order_by('fecha_entrega')
+        elif orden_fecha == 'lejana':
+            # Más lejana primero (las que tienen más tiempo)
+            queryset = queryset.order_by('-fecha_entrega')
+        elif orden_fecha == 'reciente':
+            # Pedidos más recientes primero
+            queryset = queryset.order_by('-fecha_creacion')
+        elif orden_fecha == 'antiguo':
+            # Pedidos más antiguos primero
+            queryset = queryset.order_by('fecha_creacion')
+        
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['estados'] = Pedido.ESTADO_CHOICES
         context['prioridades'] = Pedido.PRIORIDAD_CHOICES
+        
+        # Pasar los valores actuales de los filtros al contexto
+        context['filtro_estado'] = self.request.GET.get('estado', '')
+        context['filtro_prioridad'] = self.request.GET.get('prioridad', '')
+        context['filtro_cliente'] = self.request.GET.get('cliente', '')
+        context['filtro_fecha_desde'] = self.request.GET.get('fecha_desde', '')
+        context['filtro_fecha_hasta'] = self.request.GET.get('fecha_hasta', '')
+        context['filtro_orden_fecha'] = self.request.GET.get('orden_fecha', 'cercana')
+        
         return context
 
 class PedidoCreateView(LoginRequiredMixin, CreateView):
@@ -165,6 +206,22 @@ class PedidoUpdateView(LoginRequiredMixin, UpdateView):
         
         messages.success(self.request, f'Pedido {form.instance.codigo} actualizado exitosamente.')
         return response
+    
+    # Agregar método para pasar contexto adicional si es necesario
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Asegurar que el producto "Personalizado" exista
+        producto_personalizado, created = Producto.objects.get_or_create(
+            nombre='Personalizado',
+            codigo='PER-001',
+            defaults={
+                'descripcion': 'Producto personalizado según especificaciones del cliente',
+                'costo_estimado': 0,
+                'precio_venta': 0,
+                'activo': True
+            }
+        )
+        return context
 
 class PedidoDetailView(LoginRequiredMixin, DetailView):
     model = Pedido
@@ -196,6 +253,38 @@ def cambiar_estado_pedido(request, pk):
             messages.success(request, f'Estado del pedido {pedido.codigo} actualizado a {pedido.get_estado_display()}.')
     
     return redirect('pedido_detail', pk=pk)
+
+@login_required
+def eliminar_pedido(request, pk):
+    """Elimina un pedido y registra la operación."""
+    pedido = get_object_or_404(Pedido, pk=pk)
+    
+    # Verificar si hay órdenes de producción relacionadas
+    if hasattr(pedido, 'ordenes_produccion') and pedido.ordenes_produccion.exists():
+        messages.error(request, 
+            f'No se puede eliminar el pedido {pedido.codigo} porque tiene órdenes de producción relacionadas.')
+        return redirect('pedido_detail', pk=pk)
+    
+    if request.method == 'POST':
+        # Guardar información para el mensaje y registro
+        codigo_pedido = pedido.codigo
+        cliente = str(pedido.cliente)
+        
+        # Eliminar el pedido
+        pedido.delete()
+        
+        # Registrar la operación
+        Operacion.objects.create(
+            usuario=request.user,
+            accion='eliminar_pedido',
+            descripcion=f'Eliminó el pedido {codigo_pedido} del cliente {cliente}'
+        )
+        
+        messages.success(request, f'Pedido {codigo_pedido} eliminado exitosamente.')
+        return redirect('pedido_list')  # Redirige a la lista de pedidos
+    
+    # Si se accede por GET, mostrar página de confirmación
+    return render(request, 'produccion/pedido_confirm_delete.html', {'pedido': pedido})
 
 # ============ ÓRDENES DE PRODUCCIÓN ============ #
 class OrdenProduccionListView(LoginRequiredMixin, ListView):
@@ -245,13 +334,20 @@ def crear_orden_produccion(request, pedido_id=None):
             orden.save()
             form.save_m2m()  # Guardar relación muchos-a-muchos (equipo)
             
+            # Asignar estado inicial de trazabilidad
+            if not orden.estado_trazabilidad:
+                estado_inicial = EstadoTrazabilidad.objects.filter(orden=1).first()
+                if estado_inicial:
+                    orden.estado_trazabilidad = estado_inicial
+                    orden.save()
+            
             Operacion.objects.create(
                 usuario=request.user,
                 accion='orden_creada',
-                descripcion=f'Creó la orden de producción {orden.codigo}'
+                descripcion=f'Creó la orden de producción {orden.codigo} con lote {orden.codigo_lote}'
             )
             
-            messages.success(request, f'Orden de producción {orden.codigo} creada exitosamente.')
+            messages.success(request, f'Orden de producción {orden.codigo} creada exitosamente. Lote: {orden.codigo_lote}')
             return redirect('ordenproduccion_detail', pk=orden.pk)
     else:
         initial = {}
@@ -269,9 +365,9 @@ def crear_orden_produccion(request, pedido_id=None):
 
 @login_required
 def orden_produccion_detail(request, pk):
-    """Vista para ver el detalle de una orden de producción"""
+    """Vista para ver el detalle de una orden de producción (lote)"""
     orden = get_object_or_404(OrdenProduccion.objects.select_related(
-        'pedido', 'metodo', 'supervisor'
+        'pedido', 'metodo', 'supervisor', 'estado_trazabilidad', 'revisado_por'
     ), pk=pk)
     
     # Formulario para actualizar avance
@@ -280,11 +376,23 @@ def orden_produccion_detail(request, pk):
     # Obtener el equipo asignado
     equipo = orden.equipo.all()
     
+    # Obtener trazabilidad (operaciones relacionadas)
+    operaciones = Operacion.objects.filter(referencia=orden.codigo_lote).order_by('-fecha')[:10]
+    
+    # Obtener controles de calidad relacionados
+    controles_calidad = ControlCalidad.objects.filter(orden_produccion=orden).order_by('-fecha')
+    
+    # Obtener todos los estados de trazabilidad
+    estados_trazabilidad = EstadoTrazabilidad.objects.all().order_by('orden')
+    
     context = {
         'orden': orden,
         'avance_form': avance_form,
         'equipo': equipo,
         'estados': OrdenProduccion.ESTADO_CHOICES,
+        'operaciones': operaciones,
+        'controles_calidad': controles_calidad,
+        'estados_trazabilidad': estados_trazabilidad,
     }
     
     return render(request, 'produccion/ordenproduccion_detail.html', context)
@@ -307,7 +415,11 @@ def actualizar_avance(request, pk):
             if orden.cantidad_producida >= orden.cantidad_a_producir:
                 orden.estado = 'completada'
                 orden.fecha_fin = timezone.now()
+                orden.fecha_fin_produccion = timezone.now()
                 orden.progreso = 100
+                
+                # Registrar en trazabilidad
+                orden.registrar_trazabilidad("Producción completada", observaciones, request.user)
             
             orden.save()
             
@@ -315,10 +427,10 @@ def actualizar_avance(request, pk):
             Operacion.objects.create(
                 usuario=request.user,
                 accion='avance_produccion',
-                descripcion=f'Registró avance en orden {orden.codigo}: {cantidad_producida} unidades producidas. {observaciones}'
+                descripcion=f'Registró avance en orden {orden.codigo} (Lote {orden.codigo_lote}): {cantidad_producida} unidades producidas. {observaciones}'
             )
             
-            messages.success(request, f'Avance registrado en orden {orden.codigo}.')
+            messages.success(request, f'Avance registrado en orden {orden.codigo} (Lote {orden.codigo_lote}).')
             return redirect('ordenproduccion_detail', pk=orden.pk)
     
     return redirect('ordenproduccion_detail', pk=orden.pk)
@@ -334,10 +446,13 @@ def cambiar_estado_orden(request, pk):
             # Si se inicia la orden
             if nuevo_estado == 'en_proceso' and orden.estado != 'en_proceso':
                 orden.fecha_inicio = timezone.now()
+                orden.fecha_inicio_produccion = timezone.now()
+                orden.registrar_trazabilidad("Producción iniciada", "", request.user)
             
             # Si se completa la orden
             if nuevo_estado == 'completada' and orden.estado != 'completada':
                 orden.fecha_fin = timezone.now()
+                orden.fecha_fin_produccion = timezone.now()
                 orden.progreso = 100
                 orden.cantidad_producida = orden.cantidad_a_producir
             
@@ -348,38 +463,249 @@ def cambiar_estado_orden(request, pk):
             Operacion.objects.create(
                 usuario=request.user,
                 accion='cambio_estado_orden',
-                descripcion=f'Cambió el estado de la orden {orden.codigo} de {estado_anterior} a {orden.get_estado_display()}'
+                descripcion=f'Cambió el estado de la orden {orden.codigo} (Lote {orden.codigo_lote}) de {estado_anterior} a {orden.get_estado_display()}'
             )
             
-            messages.success(request, f'Estado de la orden {orden.codigo} actualizado.')
+            messages.success(request, f'Estado de la orden {orden.codigo} (Lote {orden.codigo_lote}) actualizado.')
     
     return redirect('ordenproduccion_detail', pk=pk)
 
+# ============ TRAZABILIDAD Y CONTROL DE LOTE ============ #
+@login_required
+def actualizar_estado_trazabilidad(request, pk):
+    """Actualizar el estado de trazabilidad de un lote"""
+    orden = get_object_or_404(OrdenProduccion, pk=pk)
+    
+    if request.method == 'POST':
+        nuevo_estado_id = request.POST.get('estado_trazabilidad')
+        observaciones = request.POST.get('observaciones', '')
+        
+        if nuevo_estado_id:
+            estado = get_object_or_404(EstadoTrazabilidad, id=nuevo_estado_id)
+            orden.estado_trazabilidad = estado
+            
+            # Registrar en trazabilidad
+            orden.registrar_trazabilidad(
+                f"Cambio a estado: {estado.nombre}",
+                observaciones,
+                request.user
+            )
+            
+            messages.success(request, f'Estado del lote actualizado a: {estado.nombre}')
+        
+        return redirect('ordenproduccion_detail', pk=orden.pk)
+    
+    # GET: Mostrar formulario
+    estados = EstadoTrazabilidad.objects.all()
+    
+    return render(request, 'produccion/actualizar_estado_trazabilidad.html', {
+        'orden': orden,
+        'estados': estados,
+    })
+
+@login_required
+def control_calidad_lote(request, pk):
+    """Vista específica para control de calidad de un lote"""
+    orden = get_object_or_404(OrdenProduccion, pk=pk)
+    
+    if request.method == 'POST':
+        resultado = request.POST.get('resultado')
+        cantidad_rechazada = request.POST.get('cantidad_rechazada', 0)
+        observaciones = request.POST.get('observaciones', '')
+        
+        try:
+            cantidad_rechazada = int(cantidad_rechazada)
+            
+            if resultado == 'aprobado':
+                orden.aprobar_control_calidad(request.user)
+                messages.success(request, f'Lote {orden.codigo_lote} aprobado.')
+            elif resultado in ['rechazado', 'parcial']:
+                orden.rechazar_control_calidad(
+                    cantidad_rechazada,
+                    observaciones,
+                    request.user
+                )
+                if cantidad_rechazada == 0:
+                    messages.success(request, f'Lote {orden.codigo_lote} no tuvo rechazos.')
+                elif cantidad_rechazada >= orden.cantidad_producida:
+                    messages.error(request, f'Lote {orden.codigo_lote} rechazado completamente.')
+                else:
+                    messages.warning(request, f'Lote {orden.codigo_lote} rechazado parcialmente: {cantidad_rechazada} unidades.')
+            
+            return redirect('ordenproduccion_detail', pk=orden.pk)
+            
+        except ValueError:
+            messages.error(request, 'Cantidad rechazada inválida.')
+    
+    return render(request, 'produccion/control_calidad_lote.html', {
+        'orden': orden,
+    })
+
+@login_required
+def marcar_como_almacenado(request, pk):
+    """Marcar un lote como almacenado"""
+    orden = get_object_or_404(OrdenProduccion, pk=pk)
+    
+    if request.method == 'POST':
+        orden.marcar_como_almacenado()
+        messages.success(request, f'Lote {orden.codigo_lote} marcado como almacenado.')
+        return redirect('ordenproduccion_detail', pk=orden.pk)
+    
+    return render(request, 'produccion/marcar_almacenado.html', {'orden': orden})
+
+@login_required
+def marcar_como_despachado(request, pk):
+    """Marcar un lote como despachado"""
+    orden = get_object_or_404(OrdenProduccion, pk=pk)
+    
+    if request.method == 'POST':
+        orden.marcar_como_despachado()
+        messages.success(request, f'Lote {orden.codigo_lote} marcado como despachado.')
+        return redirect('ordenproduccion_detail', pk=orden.pk)
+    
+    return render(request, 'produccion/marcar_despachado.html', {'orden': orden})
+
+# ============ REPORTES DE LOTES ============ #
+@login_required
+def reporte_lotes(request):
+    """Reporte consolidado de lotes"""
+    # Filtros
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    resultado = request.GET.get('resultado')
+    estado_trazabilidad = request.GET.get('estado_trazabilidad')
+    
+    lotes = OrdenProduccion.objects.all().select_related(
+        'pedido', 'pedido__producto', 'supervisor', 'estado_trazabilidad', 'revisado_por'
+    )
+    
+    if fecha_inicio:
+        lotes = lotes.filter(fecha_creacion__date__gte=fecha_inicio)
+    if fecha_fin:
+        lotes = lotes.filter(fecha_creacion__date__lte=fecha_fin)
+    if resultado:
+        lotes = lotes.filter(resultado_control_calidad=resultado)
+    if estado_trazabilidad:
+        lotes = lotes.filter(estado_trazabilidad_id=estado_trazabilidad)
+    
+    # Estadísticas
+    total_lotes = lotes.count()
+    aprobados = lotes.filter(resultado_control_calidad='aprobado').count()
+    rechazados = lotes.filter(resultado_control_calidad='rechazado').count()
+    pendientes = lotes.filter(resultado_control_calidad='pendiente').count()
+    
+    # Eficiencia por producto
+    eficiencia_producto = lotes.values(
+        'pedido__producto__nombre'
+    ).annotate(
+        total=Count('id'),
+        aprobados=Count('id', filter=Q(resultado_control_calidad='aprobado')),
+        tasa_aprobacion=100.0 * Count('id', filter=Q(resultado_control_calidad='aprobado')) / Count('id')
+    ).order_by('-tasa_aprobacion')
+    
+    # Lotes por estado de trazabilidad
+    lotes_por_estado = lotes.values('estado_trazabilidad__nombre').annotate(
+        cantidad=Count('id')
+    ).order_by('-cantidad')
+    
+    # Obtener todos los estados de trazabilidad para el filtro
+    estados = EstadoTrazabilidad.objects.all()
+    
+    context = {
+        'lotes': lotes,
+        'total_lotes': total_lotes,
+        'aprobados': aprobados,
+        'rechazados': rechazados,
+        'pendientes': pendientes,
+        'eficiencia_producto': eficiencia_producto,
+        'lotes_por_estado': lotes_por_estado,
+        'estados': estados,
+    }
+    
+    return render(request, 'produccion/reporte_lotes.html', context)
+
 # ============ PLANIFICACIÓN ============ #
+# ============ PLANIFICACIÓN MEJORADA ============ #
 class PlanificacionListView(LoginRequiredMixin, ListView):
     model = Planificacion
     template_name = 'produccion/planificacion_list.html'
     context_object_name = 'planificaciones'
+    paginate_by = 15
     
     def get_queryset(self):
-        queryset = Planificacion.objects.all().prefetch_related('responsables', 'ordenes')
+        queryset = Planificacion.objects.all().prefetch_related(
+            'responsables', 
+            'ordenes',
+            'planificacionorden_set__orden__pedido'
+        ).order_by('-fecha_creacion')
         
+        # Filtros avanzados
         tipo = self.request.GET.get('tipo')
-        activa = self.request.GET.get('activa')
-        completada = self.request.GET.get('completada')
+        estado = self.request.GET.get('estado')
+        fecha_desde = self.request.GET.get('fecha_desde')
+        fecha_hasta = self.request.GET.get('fecha_hasta')
+        responsable_id = self.request.GET.get('responsable')
         
         if tipo:
             queryset = queryset.filter(tipo=tipo)
-        if activa == 'true':
-            queryset = queryset.filter(activa=True)
-        elif activa == 'false':
-            queryset = queryset.filter(activa=False)
-        if completada == 'true':
+        if estado == 'activa':
+            queryset = queryset.filter(activa=True, completada=False)
+        elif estado == 'completada':
             queryset = queryset.filter(completada=True)
-        elif completada == 'false':
-            queryset = queryset.filter(completada=False)
+        elif estado == 'inactiva':
+            queryset = queryset.filter(activa=False, completada=False)
+        
+        if fecha_desde:
+            queryset = queryset.filter(fecha_fin__gte=fecha_desde)
+        if fecha_hasta:
+            queryset = queryset.filter(fecha_inicio__lte=fecha_hasta)
+        if responsable_id:
+            queryset = queryset.filter(responsables__id=responsable_id)
         
         return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estadísticas detalladas
+        planificaciones = self.get_queryset()
+        context['activas_count'] = planificaciones.filter(activa=True, completada=False).count()
+        context['completadas_count'] = planificaciones.filter(completada=True).count()
+        context['inactivas_count'] = planificaciones.filter(activa=False, completada=False).count()
+        
+        # Calcular métricas
+        if planificaciones.exists():
+            porcentajes = [p.porcentaje_completado() for p in planificaciones if p.ordenes.count() > 0]
+            context['porcentaje_promedio'] = int(sum(porcentajes) / len(porcentajes)) if porcentajes else 0
+            
+            # Total de órdenes en todas las planificaciones
+            total_ordenes = sum(p.ordenes.count() for p in planificaciones)
+            context['total_ordenes'] = total_ordenes
+            
+            # Eficiencia promedio
+            ordenes_completadas = 0
+            for p in planificaciones:
+                ordenes_completadas += p.ordenes.filter(estado='completada').count()
+            
+            context['eficiencia_promedio'] = int((ordenes_completadas / total_ordenes * 100)) if total_ordenes > 0 else 0
+        else:
+            context['porcentaje_promedio'] = 0
+            context['total_ordenes'] = 0
+            context['eficiencia_promedio'] = 0
+        
+        # Filtros para el formulario
+        context['tipos'] = Planificacion.TIPO_CHOICES
+        context['responsables'] = User.objects.filter(
+            is_active=True
+        ).order_by('first_name', 'last_name')
+        
+        # Planificaciones activas para mostrar en miniaturas
+        context['planificaciones_activas'] = planificaciones.filter(
+            activa=True, 
+            completada=False
+        ).order_by('fecha_inicio')[:3]
+        
+        return context
 
 @login_required
 def vista_calendario(request):
@@ -427,65 +753,141 @@ def vista_calendario(request):
 
 @login_required
 def generar_planificacion_semanal(request):
-    if request.method == 'POST':
-        # Generar planificación semanal automática
-        fecha_inicio = datetime.strptime(request.POST.get('fecha_inicio'), '%Y-%m-%d').date()
-        fecha_fin = fecha_inicio + timedelta(days=6)
-        
-        # Buscar pedidos pendientes
-        pedidos_pendientes = Pedido.objects.filter(
-            estado__in=['pendiente', 'en_proceso'],
-            fecha_entrega__lte=fecha_fin
-        ).order_by('prioridad', 'fecha_entrega')
-        
-        # Crear planificación
-        planificacion = Planificacion.objects.create(
-            nombre=f'Planificación Semanal {fecha_inicio} a {fecha_fin}',
-            tipo='semanal',
-            fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_fin,
-            creado_por=request.user
-        )
-        
-        # Asignar pedidos a la planificación
-        for i, pedido in enumerate(pedidos_pendientes[:40]):  # Máximo 20 pedidos por semana
-            # Crear orden de producción si no existe
-            orden, created = OrdenProduccion.objects.get_or_create(
-                pedido=pedido,
-                defaults={
-                    'metodo': MetodoProduccion.objects.first(),
-                    'fecha_programada': fecha_inicio + timedelta(days=i % 7),
-                    'supervisor': request.user,
-                    'cantidad_a_producir': pedido.cantidad,
-                }
-            )
-            
-            if created:
-                orden.save()
-            
-            # Asignar orden a la planificación
-            fecha_asignada = fecha_inicio + timedelta(days=i % 7)
-            planificacion.ordenes.add(orden)
-            
-            # Crear asignación específica
-            PlanificacionOrden.objects.create(
-                planificacion=planificacion,
-                orden=orden,
-                fecha_asignada=fecha_asignada,
-                turno='manana' if i % 2 == 0 else 'tarde',
-                prioridad=pedido.prioridad
-            )
-        
-        Operacion.objects.create(
-            usuario=request.user,
-            accion='planificacion_generada',
-            descripcion=f'Generó planificación semanal {planificacion.nombre}'
-        )
-        
-        messages.success(request, f'Planificación semanal {planificacion.nombre} generada exitosamente.')
-        return redirect('planificacion_detail', pk=planificacion.pk)
+    """Vista para generar planificación semanal"""
+    hoy = timezone.now().date()
     
-    return render(request, 'produccion/generar_planificacion.html')
+    # Si es POST, procesar la generación
+    if request.method == 'POST':
+        try:
+            fecha_inicio = datetime.strptime(request.POST.get('fecha_inicio'), '%Y-%m-%d').date()
+            fecha_fin = fecha_inicio + timedelta(days=6)
+            
+            # Obtener pedidos seleccionados
+            pedidos_seleccionados_ids = request.POST.getlist('pedidos')
+            
+            # Si no hay pedidos seleccionados, usar todos los disponibles
+            if not pedidos_seleccionados_ids:
+                pedidos_pendientes = Pedido.objects.filter(
+                    estado__in=['pendiente', 'en_proceso'],
+                    fecha_entrega__lte=fecha_fin
+                ).order_by('prioridad', 'fecha_entrega')[:20]
+                pedidos_seleccionados_ids = [p.id for p in pedidos_pendientes]
+            
+            # Crear planificación
+            planificacion = Planificacion.objects.create(
+                nombre=request.POST.get('nombre', f'Planificación Semanal {fecha_inicio} a {fecha_fin}'),
+                tipo='semanal',
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                descripcion=request.POST.get('descripcion', ''),
+                creado_por=request.user,
+                activa=True,
+                completada=False
+            )
+            
+            # Asignar responsables
+            responsables_ids = request.POST.getlist('responsables')
+            if responsables_ids:
+                responsables = User.objects.filter(id__in=responsables_ids)
+                planificacion.responsables.set(responsables)
+            
+            # Procesar cada pedido seleccionado
+            for i, pedido_id in enumerate(pedidos_seleccionados_ids[:20]):  # Máximo 20 pedidos
+                try:
+                    pedido = Pedido.objects.get(id=pedido_id)
+                    
+                    # Crear o obtener orden de producción
+                    orden, created = OrdenProduccion.objects.get_or_create(
+                        pedido=pedido,
+                        defaults={
+                            'metodo': MetodoProduccion.objects.filter(activo=True).first(),
+                            'fecha_programada': fecha_inicio + timedelta(days=i % 7),
+                            'supervisor': request.user,
+                            'cantidad_a_producir': pedido.cantidad,
+                        }
+                    )
+                    
+                    if not orden.codigo:
+                        orden.save()  # Esto generará el código automáticamente
+                    
+                    # Asignar orden a la planificación
+                    planificacion.ordenes.add(orden)
+                    
+                    # Crear asignación específica (PlanificacionOrden)
+                    fecha_asignada = fecha_inicio + timedelta(days=i % 7)
+                    PlanificacionOrden.objects.create(
+                        planificacion=planificacion,
+                        orden=orden,
+                        fecha_asignada=fecha_asignada,
+                        turno='manana' if i % 2 == 0 else 'tarde',
+                        prioridad=pedido.prioridad,
+                        notas=f'Generado automáticamente desde pedido {pedido.codigo}'
+                    )
+                    
+                except Pedido.DoesNotExist:
+                    continue
+                except Exception as e:
+                    print(f"Error procesando pedido {pedido_id}: {e}")
+                    continue
+            
+            # Registrar operación
+            Operacion.objects.create(
+                usuario=request.user,
+                accion='planificacion_generada',
+                descripcion=f'Generó planificación semanal {planificacion.nombre} con {planificacion.ordenes.count()} órdenes'
+            )
+            
+            messages.success(request, f'✅ Planificación semanal "{planificacion.nombre}" generada exitosamente con {planificacion.ordenes.count()} órdenes.')
+            return redirect('planificacion_list')
+            
+        except Exception as e:
+            messages.error(request, f'❌ Error al generar la planificación: {str(e)}')
+            return redirect('generar_planificacion_semanal')
+    
+    # Si es GET, mostrar formulario
+    # Calcular fechas por defecto (próximo lunes)
+    dias_para_lunes = (0 - hoy.weekday()) % 7  # 0 = Lunes
+    if dias_para_lunes == 0:
+        dias_para_lunes = 7  # Si hoy es lunes, programar para el próximo lunes
+    
+    fecha_lunes = hoy + timedelta(days=dias_para_lunes)
+    fecha_domingo = fecha_lunes + timedelta(days=6)
+    
+    # Obtener pedidos pendientes
+    pedidos_pendientes = Pedido.objects.filter(
+        estado__in=['pendiente', 'en_proceso'],
+        fecha_entrega__lte=fecha_domingo + timedelta(days=14)  # Pedidos con entrega en las próximas 2 semanas
+    ).order_by('prioridad', 'fecha_entrega')[:40]
+    
+    # Obtener supervisores y usuarios activos
+    usuarios_supervisores = User.objects.filter(
+        is_active=True
+    ).order_by('username')
+    
+    # Crear días de la semana para la vista previa
+    dias_semana = []
+    total_pedidos = len(pedidos_pendientes)
+    for i in range(7):
+        dia = fecha_lunes + timedelta(days=i)
+        # Distribuir pedidos entre los días (máximo 3 por día para la vista previa)
+        pedidos_por_dia = min(3, max(0, total_pedidos - (i * 3)))
+        dias_semana.append({
+            'fecha': dia,
+            'nombre': dia.strftime('%A'),
+            'es_hoy': dia == hoy,
+            'num_pedidos': pedidos_por_dia
+        })
+    
+    context = {
+        'fecha_lunes': fecha_lunes,
+        'fecha_domingo': fecha_domingo,
+        'pedidos_pendientes': pedidos_pendientes,
+        'usuarios_supervisores': usuarios_supervisores,
+        'dias_semana': dias_semana,
+        'hoy': hoy,
+    }
+    
+    return render(request, 'produccion/generar_planificacion.html', context)
 
 # ============ REPORTES Y ESTADÍSTICAS ============ #
 @login_required
@@ -728,4 +1130,308 @@ def api_estadisticas(request):
         'pedidos_por_estado': pedidos_por_estado,
         'total_pedidos': Pedido.objects.count(),
         'pedidos_hoy': Pedido.objects.filter(fecha_creacion__date=hoy).count(),
+    })
+    
+@login_required
+def planificacion_detail(request, pk):
+    """Vista para ver detalles de una planificación"""
+    planificacion = get_object_or_404(
+        Planificacion.objects.prefetch_related(
+            'responsables', 
+            'planificacionorden_set__orden__pedido__producto'
+        ), 
+        pk=pk
+    )
+    
+    # Obtener todas las asignaciones de órdenes - CORREGIDO
+    asignaciones = PlanificacionOrden.objects.filter(
+        planificacion=planificacion
+    ).select_related(
+        'orden__pedido__producto',  # Solo campos que son relaciones
+    ).order_by('fecha_asignada', 'turno')
+    
+    # Obtener PEDIDOS únicos de esta planificación
+    pedidos_unicos = Pedido.objects.filter(
+        ordenes_produccion__in=planificacion.ordenes.all()
+    ).distinct().select_related('producto', 'creado_por')
+    
+    # Calcular estadísticas de pedidos
+    total_pedidos = pedidos_unicos.count()
+    pedidos_completados = pedidos_unicos.filter(estado='completado').count()
+    pedidos_en_proceso = pedidos_unicos.filter(estado='en_proceso').count()
+    pedidos_pendientes = pedidos_unicos.filter(estado='pendiente').count()
+    
+    # Agrupar asignaciones por fecha
+    asignaciones_por_fecha = {}
+    for asignacion in asignaciones:
+        fecha_str = asignacion.fecha_asignada.strftime('%Y-%m-%d')
+        if fecha_str not in asignaciones_por_fecha:
+            asignaciones_por_fecha[fecha_str] = {
+                'fecha': asignacion.fecha_asignada,
+                'turno_manana': [],
+                'turno_tarde': [],
+                'turno_noche': []
+            }
+        
+        if asignacion.turno == 'manana':
+            asignaciones_por_fecha[fecha_str]['turno_manana'].append(asignacion)
+        elif asignacion.turno == 'tarde':
+            asignaciones_por_fecha[fecha_str]['turno_tarde'].append(asignacion)
+        else:
+            asignaciones_por_fecha[fecha_str]['turno_noche'].append(asignacion)
+    
+    # Obtener órdenes disponibles para agregar
+    ordenes_disponibles = OrdenProduccion.objects.filter(
+        Q(estado='programada') | Q(estado='en_proceso')
+    ).exclude(
+        id__in=planificacion.ordenes.values_list('id', flat=True)
+    ).select_related('pedido', 'pedido__producto')
+    
+    context = {
+        'planificacion': planificacion,
+        'asignaciones': asignaciones,
+        'asignaciones_por_fecha': asignaciones_por_fecha,
+        'responsables': planificacion.responsables.all(),
+        'ordenes_disponibles': ordenes_disponibles,
+        'pedidos': pedidos_unicos,
+        'total_pedidos': total_pedidos,
+        'pedidos_completados': pedidos_completados,
+        'pedidos_en_proceso': pedidos_en_proceso,
+        'pedidos_pendientes': pedidos_pendientes,
+    }
+    
+    return render(request, 'produccion/planificacion_detail.html', context)
+
+# ============ FUNCIONES PARA PLANIFICACIÓN ============ #
+@login_required
+def marcar_planificacion_completada(request, pk):
+    """Marca una planificación como completada"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    if request.method == 'POST':
+        planificacion.completada = True
+        planificacion.activa = False
+        planificacion.save()
+        
+        # Registrar operación
+        Operacion.objects.create(
+            usuario=request.user,
+            accion='planificacion_completada',
+            descripcion=f'Marcó la planificación "{planificacion.nombre}" como completada'
+        )
+        
+        messages.success(request, f'✅ Planificación "{planificacion.nombre}" marcada como completada.')
+        
+        # Redirigir según el origen
+        if request.POST.get('from_list'):
+            return redirect('planificacion_list')
+        return redirect('planificacion_detail', pk=planificacion.pk)
+    
+    return redirect('planificacion_detail', pk=planificacion.pk)
+
+@login_required
+def activar_desactivar_planificacion(request, pk):
+    """Activa o desactiva una planificación"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    if request.method == 'POST':
+        planificacion.activa = not planificacion.activa
+        planificacion.save()
+        
+        estado = 'activada' if planificacion.activa else 'desactivada'
+        
+        # Registrar operación
+        Operacion.objects.create(
+            usuario=request.user,
+            accion=f'planificacion_{estado}',
+            descripcion=f'{estado.capitalize()} la planificación "{planificacion.nombre}"'
+        )
+        
+        messages.success(request, f'✅ Planificación "{planificacion.nombre}" {estado}.')
+        
+        # Redirigir según el origen
+        if request.POST.get('from_list'):
+            return redirect('planificacion_list')
+        return redirect('planificacion_detail', pk=planificacion.pk)
+    
+    return redirect('planificacion_detail', pk=planificacion.pk)
+
+@login_required
+def eliminar_planificacion(request, pk):
+    """Elimina una planificación"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    if request.method == 'POST':
+        nombre = planificacion.nombre
+        
+        # Eliminar primero las asignaciones (PlanificacionOrden)
+        PlanificacionOrden.objects.filter(planificacion=planificacion).delete()
+        
+        # Luego eliminar la planificación
+        planificacion.delete()
+        
+        # Registrar operación
+        Operacion.objects.create(
+            usuario=request.user,
+            accion='planificacion_eliminada',
+            descripcion=f'Eliminó la planificación "{nombre}"'
+        )
+        
+        messages.success(request, f'✅ Planificación "{nombre}" eliminada exitosamente.')
+        return redirect('planificacion_list')
+    
+    return redirect('planificacion_detail', pk=planificacion.pk)
+
+@login_required
+def editar_planificacion(request, pk):
+    """Edita una planificación existente"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    if request.method == 'POST':
+        form = PlanificacionForm(request.POST, instance=planificacion)
+        if form.is_valid():
+            planificacion = form.save()
+            planificacion.actualizado_por = request.user
+            planificacion.save()
+            
+            # Registrar operación
+            Operacion.objects.create(
+                usuario=request.user,
+                accion='planificacion_actualizada',
+                descripcion=f'Actualizó la planificación "{planificacion.nombre}"'
+            )
+            
+            messages.success(request, f'✅ Planificación "{planificacion.nombre}" actualizada.')
+            return redirect('planificacion_detail', pk=planificacion.pk)
+    else:
+        form = PlanificacionForm(instance=planificacion)
+    
+    # Obtener todas las órdenes disponibles
+    ordenes_disponibles = OrdenProduccion.objects.filter(
+        Q(estado='programada') | Q(estado='en_proceso')
+    ).exclude(
+        id__in=planificacion.ordenes.values_list('id', flat=True)
+    )
+    
+    context = {
+        'planificacion': planificacion,
+        'form': form,
+        'ordenes_disponibles': ordenes_disponibles,
+    }
+    
+    return render(request, 'produccion/planificacion_editar.html', context)
+
+@login_required
+def agregar_orden_a_planificacion(request, pk):
+    """Agrega una orden a una planificación"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    if request.method == 'POST':
+        orden_id = request.POST.get('orden_id')
+        fecha_asignada = request.POST.get('fecha_asignada')
+        turno = request.POST.get('turno', 'manana')
+        prioridad = request.POST.get('prioridad', 1)
+        
+        if orden_id and fecha_asignada:
+            try:
+                orden = OrdenProduccion.objects.get(id=orden_id)
+                
+                # Crear la asignación
+                PlanificacionOrden.objects.create(
+                    planificacion=planificacion,
+                    orden=orden,
+                    fecha_asignada=fecha_asignada,
+                    turno=turno,
+                    prioridad=prioridad
+                )
+                
+                # Agregar la orden a la planificación
+                planificacion.ordenes.add(orden)
+                
+                # Registrar operación
+                Operacion.objects.create(
+                    usuario=request.user,
+                    accion='orden_agregada_planificacion',
+                    descripcion=f'Agregó la orden {orden.codigo} a la planificación "{planificacion.nombre}"'
+                )
+                
+                messages.success(request, f'✅ Orden {orden.codigo} agregada a la planificación.')
+                
+            except OrdenProduccion.DoesNotExist:
+                messages.error(request, '❌ La orden no existe.')
+            except Exception as e:
+                messages.error(request, f'❌ Error al agregar la orden: {str(e)}')
+    
+    return redirect('planificacion_detail', pk=planificacion.pk)
+
+@login_required
+def remover_orden_de_planificacion(request, pk):
+    """Remueve una orden de una planificación"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    if request.method == 'POST':
+        orden_id = request.POST.get('orden_id')
+        
+        if orden_id:
+            try:
+                orden = OrdenProduccion.objects.get(id=orden_id)
+                
+                # Eliminar la asignación
+                PlanificacionOrden.objects.filter(
+                    planificacion=planificacion,
+                    orden=orden
+                ).delete()
+                
+                # Remover la orden de la planificación
+                planificacion.ordenes.remove(orden)
+                
+                # Registrar operación
+                Operacion.objects.create(
+                    usuario=request.user,
+                    accion='orden_removida_planificacion',
+                    descripcion=f'Removió la orden {orden.codigo} de la planificación "{planificacion.nombre}"'
+                )
+                
+                messages.success(request, f'✅ Orden {orden.codigo} removida de la planificación.')
+                
+            except OrdenProduccion.DoesNotExist:
+                messages.error(request, '❌ La orden no existe.')
+            except Exception as e:
+                messages.error(request, f'❌ Error al remover la orden: {str(e)}')
+    
+    return redirect('planificacion_detail', pk=planificacion.pk)
+
+@login_required
+def obtener_estadisticas_pedidos_planificacion(request, pk):
+    """API para obtener estadísticas detalladas de pedidos en una planificación"""
+    planificacion = get_object_or_404(Planificacion, pk=pk)
+    
+    # Obtener pedidos únicos
+    pedidos = Pedido.objects.filter(
+        ordenes_produccion__in=planificacion.ordenes.all()
+    ).distinct()
+    
+    # Estadísticas por estado
+    por_estado = pedidos.values('estado').annotate(
+        total=Count('id'),
+        cantidad_total=Sum('cantidad')
+    )
+    
+    # Estadísticas por prioridad
+    por_prioridad = pedidos.values('prioridad').annotate(
+        total=Count('id')
+    )
+    
+    # Productos más comunes
+    productos_comunes = pedidos.values('producto__nombre').annotate(
+        total=Count('id'),
+        cantidad=Sum('cantidad')
+    ).order_by('-total')[:5]
+    
+    return JsonResponse({
+        'por_estado': list(por_estado),
+        'por_prioridad': list(por_prioridad),
+        'productos_comunes': list(productos_comunes),
+        'total_pedidos': pedidos.count(),
+        'total_unidades': pedidos.aggregate(total=Sum('cantidad'))['total'] or 0,
     })

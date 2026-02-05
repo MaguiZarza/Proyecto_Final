@@ -7,10 +7,17 @@ import datetime
 ## forms produccion
 
 class PedidoForm(forms.ModelForm):
-    producto = forms.ModelChoiceField(
-        queryset=Producto.objects.filter(activo=True),
+    # Crear un queryset que incluya todos los productos activos y una opción "Otro"
+    producto_choice = forms.ChoiceField(
+        choices=[],
         label="Producto",
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_producto_choice'})
+    )
+    
+    producto_otro = forms.CharField(
+        required=False,
+        label='Especificar otro producto',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Describe el producto personalizado...'})
     )
     
     fecha_entrega = forms.DateField(
@@ -20,7 +27,7 @@ class PedidoForm(forms.ModelForm):
     
     class Meta:
         model = Pedido
-        fields = ['cliente', 'contacto', 'telefono', 'email', 'producto', 
+        fields = ['cliente', 'contacto', 'telefono', 'email', 
                  'cantidad', 'fecha_entrega', 'prioridad', 'especificaciones', 
                  'observaciones', 'archivo_diseno']
         widgets = {
@@ -33,6 +40,82 @@ class PedidoForm(forms.ModelForm):
             'especificaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Obtener productos activos
+        productos = Producto.objects.filter(activo=True)
+        
+        # Crear opciones: primero productos normales, luego "Otro"
+        choices = [(str(p.id), p.nombre) for p in productos]
+        choices.append(('otro', 'Otro (Personalizado)'))
+        
+        self.fields['producto_choice'].choices = choices
+        
+        # Si estamos editando un pedido existente, configurar el valor inicial
+        if self.instance and self.instance.pk:
+            if self.instance.producto:
+                self.fields['producto_choice'].initial = str(self.instance.producto.id)
+            else:
+                # Si no tiene producto (caso de "otro" guardado)
+                self.fields['producto_choice'].initial = 'otro'
+                # Mostrar el nombre del producto en especificaciones como referencia
+                if self.instance.especificaciones:
+                    lines = self.instance.especificaciones.split('\n')
+                    for line in lines:
+                        if line.startswith('Producto personalizado:'):
+                            self.fields['producto_otro'].initial = line.replace('Producto personalizado:', '').strip()
+                            break
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        producto_choice = cleaned_data.get('producto_choice')
+        producto_otro = cleaned_data.get('producto_otro')
+        
+        # Validar que si se selecciona "Otro", se especifique el producto
+        if producto_choice == 'otro' and not producto_otro:
+            self.add_error('producto_otro', 'Debe especificar el producto personalizado.')
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        pedido = super().save(commit=False)
+        producto_choice = self.cleaned_data.get('producto_choice')
+        producto_otro = self.cleaned_data.get('producto_otro', '')
+        
+        # Manejar la selección del producto
+        if producto_choice == 'otro':
+            # Si es "Otro", buscar o crear un producto genérico "Personalizado"
+            producto_personalizado, created = Producto.objects.get_or_create(
+                nombre='Personalizado',
+                codigo='PER-001',
+                defaults={
+                    'descripcion': 'Producto personalizado según especificaciones del cliente',
+                    'costo_estimado': 0,
+                    'precio_venta': 0,
+                    'activo': True
+                }
+            )
+            pedido.producto = producto_personalizado
+            
+            # Agregar información del producto personalizado a especificaciones
+            if producto_otro:
+                especificaciones_original = self.cleaned_data.get('especificaciones', '')
+                especificaciones_con_producto = f"Producto personalizado: {producto_otro}\n\n{especificaciones_original}"
+                pedido.especificaciones = especificaciones_con_producto.strip()
+        else:
+            # Si es un producto normal, asignarlo directamente
+            try:
+                producto = Producto.objects.get(id=int(producto_choice))
+                pedido.producto = producto
+            except (ValueError, Producto.DoesNotExist):
+                pass
+        
+        if commit:
+            pedido.save()
+        
+        return pedido
 
 class OrdenProduccionForm(forms.ModelForm):
     fecha_programada = forms.DateField(
