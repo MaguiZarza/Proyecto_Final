@@ -71,7 +71,7 @@ class ProcesoAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Auditoría', {
-            'fields': ('creado_por', 'fecha_creacion', 'fecha_actualizacion'),
+            'fields': ('creado_por', 'fecha_creacion'),
             'classes': ('collapse',)
         }),
     )

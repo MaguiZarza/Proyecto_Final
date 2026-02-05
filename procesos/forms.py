@@ -106,21 +106,46 @@ class IniciarTemporizadorForm(forms.Form):
     )
 
 # ============ FORMULARIOS DE CONTROL DE CALIDAD ============ #
+from django import forms
+from .models import ControlCalidad
+
 class ControlCalidadForm(forms.ModelForm):
+    # Definir opciones fijas para el proceso
+    PROCESO_CHOICES = [
+        ('', '---------'),
+        ('Primera Revisión de corte', 'Paso por "Primera Revisión de corte"'),
+        ('Overlock', 'Paso por "Overlock"'),
+        ('Recta', 'Paso por "Recta"'),
+        ('Collareta', 'Paso por "Collareta"'),
+        ('Mesista', 'Paso por "Mesista"'),
+    ]
+    
+    # Sobreescribir el campo proceso con opciones fijas
+    proceso = forms.ChoiceField(
+        choices=PROCESO_CHOICES,
+        label='Proceso',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    # Hacer el campo de lote/orden como texto libre opcional
+    lote_orden = forms.CharField(
+        required=False,
+        label='Lote/Orden (opcional)',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ej: REM-240101-001 o referencia del lote'
+        }),
+        help_text='Puede ser el código de lote o cualquier referencia'
+    )
+    
     class Meta:
         model = ControlCalidad
-        # Quita 'orden_produccion' y 'lote' de los fields
-        fields = ['proceso', 'etapa', 'resultado', 'observaciones', 'recomendaciones',
-                 'puntuacion_total', 'cantidad_defectos', 'costo_reparacion']
+        fields = ['proceso', 'lote_orden', 'resultado', 'costo_reparacion', 'observaciones', 'recomendaciones']
         widgets = {
-            'proceso': forms.Select(attrs={'class': 'form-select'}),
-            'etapa': forms.Select(attrs={'class': 'form-select'}),
             'resultado': forms.Select(attrs={'class': 'form-select'}),
-            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'recomendaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'puntuacion_total': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'cantidad_defectos': forms.NumberInput(attrs={'class': 'form-control'}),
             'costo_reparacion': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'recomendaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 class ControlCalidadDetalleForm(forms.ModelForm):

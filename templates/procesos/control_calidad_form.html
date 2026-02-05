@@ -50,14 +50,14 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.orden_produccion.id_for_label }}" class="form-label">
-                                    Lote/Orden
+                                <label for="{{ form.lote_orden.id_for_label }}" class="form-label">
+                                    Lote/Orden (opcional)
                                 </label>
-                                {{ form.orden_produccion }}
-                                {% if form.orden_produccion.errors %}
-                                <div class="text-danger">{{ form.orden_produccion.errors }}</div>
+                                {{ form.lote_orden }}
+                                {% if form.lote_orden.errors %}
+                                <div class="text-danger">{{ form.lote_orden.errors }}</div>
                                 {% endif %}
-                                <small class="text-muted">Opcional: Asociar a un lote específico</small>
+                                <div class="form-text">Puede ser el código de lote o cualquier referencia</div>
                             </div>
                         </div>
                         
@@ -122,6 +122,30 @@
                     Instrucciones
                 </div>
                 <div class="card-body">
+                    <h6>Procesos disponibles:</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-scissors me-2 text-primary"></i>
+                            <strong>Primera Revisión de corte:</strong> Verificación inicial del corte de tela
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-thread me-2 text-primary"></i>
+                            <strong>Overlock:</strong> Proceso de sobrehilado en bordes
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-rulers me-2 text-primary"></i>
+                            <strong>Recta:</strong> Costura recta en máquina plana
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-circle me-2 text-primary"></i>
+                            <strong>Collareta:</strong> Confección de cuellos y puños
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-table me-2 text-primary"></i>
+                            <strong>Mesista:</strong> Revisión y terminación en mesa
+                        </li>
+                    </ul>
+                    <hr>
                     <h6>Guía para control de calidad:</h6>
                     <ul class="list-unstyled">
                         <li class="mb-2">
@@ -141,11 +165,6 @@
                             <strong>Revisión:</strong> Necesita análisis adicional
                         </li>
                     </ul>
-                    <hr>
-                    <small class="text-muted">
-                        <i class="bi bi-lightbulb me-1"></i>
-                        Después de guardar, podrás agregar detalles específicos de defectos si es necesario.
-                    </small>
                 </div>
             </div>
         </div>

@@ -351,76 +351,64 @@ class Temporizador(models.Model):
 # ============ CONTROL DE CALIDAD AVANZADO (MODIFICADO PARA LOTE) ============ #
 class ControlCalidad(models.Model):
     RESULTADO_CHOICES = [
-        ('aprobado', '✅ Aprobado'),
-        ('rechazado', '❌ Rechazado'),
-        ('reparacion', '🔧 Requiere reparación'),
-        ('revision', '🔍 En revisión'),
+        ('aprobado', ' Aprobado'),
+        ('reparacion', ' Reparación'),
+        ('rechazado', ' Rechazado'),
+        ('revision', ' Revisión'),
     ]
-
-    # Relaciones MODIFICADAS - Ahora con OrdenProduccion (lote)
-    proceso = models.ForeignKey(Proceso, on_delete=models.CASCADE, null=True, blank=True)
-    etapa = models.ForeignKey(EtapaProceso, on_delete=models.CASCADE, null=True, blank=True)
     
-    # NUEVA RELACIÓN con OrdenProduccion (lote)
-    orden_produccion = models.ForeignKey(
-        'produccion.OrdenProduccion', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name='controles_calidad'
+    PROCESO_CHOICES = [
+        ('', '---------'),
+        ('Primera Revisión de corte', 'Paso por "Primera Revisión de corte"'),
+        ('Overlock', 'Paso por "Overlock"'),
+        ('Recta', 'Paso por "Recta"'),
+        ('Collareta', 'Paso por "Collareta"'),
+        ('Mesista', 'Paso por "Mesista"'),
+    ]
+    
+    # Cambia esto de ForeignKey a CharField
+    proceso = models.CharField(
+        max_length=100,
+        choices=PROCESO_CHOICES,
+        verbose_name='Proceso'
     )
     
-    # Relación con Pedido
-    pedido = models.ForeignKey(
-        'produccion.Pedido', 
-        on_delete=models.SET_NULL, 
-        null=True, 
+    # Agrega este campo para el lote/orden opcional
+    lote_orden = models.CharField(
+        max_length=100,
         blank=True,
-        related_name='controles_calidad'
+        null=True,
+        verbose_name='Lote/Orden (opcional)'
     )
     
-    # Información básica
-    fecha = models.DateTimeField(auto_now_add=True)
-    inspector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='controles_calidad')
-    resultado = models.CharField(max_length=20, choices=RESULTADO_CHOICES, default='revision')
-    
-    # Detalles
+    resultado = models.CharField(max_length=20, choices=RESULTADO_CHOICES)
+    costo_reparacion = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # ¡SOLO UNA VEZ!
     observaciones = models.TextField(blank=True)
     recomendaciones = models.TextField(blank=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+    inspector = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     
-    # Métricas
+    # Métricas (SIN costo_reparacion duplicado)
     puntuacion_total = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     cantidad_defectos = models.PositiveIntegerField(default=0)
-    costo_reparacion = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
-    # Auditoría
-    revisado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='controles_revisados')
-    fecha_revision = models.DateTimeField(null=True, blank=True)
-
+    # ... resto de campos ...
+    
     class Meta:
         ordering = ['-fecha']
         verbose_name = 'Control de Calidad'
         verbose_name_plural = 'Controles de Calidad'
 
     def __str__(self):
-        lote_info = f"Lote {self.orden_produccion.codigo_lote}" if self.orden_produccion else "General"
-        return f"Control {lote_info} - {self.fecha:%d/%m/%Y}"
-
+    # Usar el string del proceso en lugar de buscar un objeto relacionado
+        proceso_info = f"{self.proceso}" if self.proceso else "General"
+        lote_info = f" - Lote: {self.lote_orden}" if self.lote_orden else ""
+        return f"Control {proceso_info}{lote_info} - {self.fecha:%d/%m/%Y}"
+    
     def save(self, *args, **kwargs):
-        # Si hay orden de producción, obtener el pedido automáticamente
-        if self.orden_produccion and not self.pedido:
-            self.pedido = self.orden_produccion.pedido
-        
-        # Si se aprueba/rechaza, actualizar el lote
-        if self.orden_produccion and self.resultado != 'revision':
-            if self.resultado == 'aprobado':
-                self.orden_produccion.aprobar_control_calidad(self.inspector)
-            elif self.resultado in ['rechazado', 'reparacion']:
-                # Podrías agregar lógica para cantidad rechazada específica
-                pass
-        
+        # Método save simplificado - ya no hace referencia a orden_produccion
         super().save(*args, **kwargs)
-
+    
     def marcar_como_revisado(self, usuario):
         self.revisado_por = usuario
         self.fecha_revision = timezone.now()

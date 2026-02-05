@@ -486,11 +486,11 @@ def crear_control_calidad(request):
             control.inspector = request.user
             control.save()
             
-            # Registrar operación
+            # Registrar operación - CORREGIDO
             Operacion.objects.create(
                 usuario=request.user,
                 accion='control_calidad',
-                descripcion=f"Control de calidad creado para {control.proceso.nombre if control.proceso else 'proceso general'}",
+                descripcion=f"Control de calidad creado para proceso: {control.proceso}",
                 referencia=f"CC-{control.id}"
             )
             
@@ -505,7 +505,6 @@ def crear_control_calidad(request):
         form = ControlCalidadForm()
     
     return render(request, 'procesos/control_calidad_form.html', {'form': form})
-
 @login_required
 def detalle_control_calidad(request, pk):
     """Detalle de un control de calidad"""
@@ -559,6 +558,7 @@ def agregar_detalle_control(request, control_id):
     return render(request, 'procesos/agregar_detalle_control.html', context)
 
 @login_required
+@login_required
 def generar_no_conformidad(request, control_id):
     """Generar una no conformidad a partir de un control de calidad"""
     control = get_object_or_404(ControlCalidad, pk=control_id)
@@ -568,9 +568,11 @@ def generar_no_conformidad(request, control_id):
         if form.is_valid():
             no_conformidad = form.save(commit=False)
             no_conformidad.control_calidad = control
+            
+            # NO intentes asignar proceso porque es un string, no un objeto
+            # no_conformidad.proceso = control.proceso  # ¡ELIMINA ESTA LÍNEA!
+            
             no_conformidad.reportado_por = request.user
-            no_conformidad.proceso = control.proceso
-            no_conformidad.orden_produccion = control.orden_produccion
             no_conformidad.save()
             
             # Actualizar estado del control
@@ -580,12 +582,9 @@ def generar_no_conformidad(request, control_id):
             messages.success(request, f'No conformidad {no_conformidad.codigo} generada.')
             return redirect('detalle_no_conformidad', pk=no_conformidad.pk)
     else:
-        # Pre-cargar datos del control
+        # Pre-cargar datos del control - CORREGIDO
         initial_data = {
-            'proceso': control.proceso,
-            'control_calidad': control,
-            'orden_produccion': control.orden_produccion,
-            'descripcion': f"No conformidad detectada en control de calidad #{control.id}",
+            'descripcion': f"No conformidad detectada en control de calidad #{control.id} para proceso: {control.proceso}",
         }
         form = NoConformidadForm(initial=initial_data)
     
@@ -595,7 +594,6 @@ def generar_no_conformidad(request, control_id):
     }
     
     return render(request, 'procesos/generar_no_conformidad.html', context)
-
 # ============ NO CONFORMIDADES ============ #
 @login_required
 def lista_no_conformidades(request):
@@ -916,6 +914,7 @@ def exportar_procesos_csv(request):
     return response
 
 @login_required
+@login_required
 def exportar_controles_calidad_csv(request):
     """Exportar controles de calidad a CSV"""
     response = HttpResponse(content_type='text/csv')
@@ -928,11 +927,11 @@ def exportar_controles_calidad_csv(request):
     writer.writerow(['Fecha', 'Proceso', 'Inspector', 'Resultado', 
                      'Puntuación', 'Defectos', 'Costo Reparación', 'Observaciones'])
     
-    controles = ControlCalidad.objects.all().select_related('proceso', 'inspector')
+    controles = ControlCalidad.objects.all()
     for cc in controles:
         writer.writerow([
             cc.fecha.strftime('%d/%m/%Y %H:%M'),
-            cc.proceso.nombre if cc.proceso else 'General',
+            cc.proceso,  # Cambiado de cc.proceso.nombre a cc.proceso
             cc.inspector.username if cc.inspector else 'N/A',
             cc.get_resultado_display(),
             cc.puntuacion_total,
