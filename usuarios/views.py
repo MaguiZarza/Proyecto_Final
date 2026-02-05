@@ -152,6 +152,11 @@ def perfil_view(request):
     user = request.user
     profile = Profile.objects.get_or_create(user=user)[0]
     
+    # Inicializar formularios (para GET y para cuando hay errores en POST)
+    user_form = UserUpdateForm(instance=user)
+    profile_form = ProfileUpdateForm(instance=profile)
+    password_form = PasswordChangeCustomForm(user)
+    
     if request.method == 'POST':
         # Determinar qué formulario se envió
         if 'update_profile' in request.POST:
@@ -159,10 +164,19 @@ def perfil_view(request):
             profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
             
             if user_form.is_valid() and profile_form.is_valid():
+                # Verificar si se solicitó eliminar la imagen
+                if 'remove_profile_image' in request.POST:
+                    if profile.profile_image:
+                        # Eliminar el archivo físico si no es la imagen por defecto
+                        if profile.profile_image.name != 'profile_images/default.png':
+                            profile.profile_image.delete(save=False)
+                        profile.profile_image = None
+                
                 user_form.save()
                 profile_form.save()
                 messages.success(request, '¡Perfil actualizado exitosamente!')
                 return redirect('perfil')
+            # Si no es válido, se quedan los formularios con errores
         
         elif 'change_password' in request.POST:
             password_form = PasswordChangeCustomForm(user, request.POST)
@@ -170,11 +184,14 @@ def perfil_view(request):
                 password_form.save()
                 messages.success(request, '¡Contraseña cambiada exitosamente! Por favor, inicia sesión nuevamente.')
                 return redirect('logout')
-    
-    else:
-        user_form = UserUpdateForm(instance=user)
-        profile_form = ProfileUpdateForm(instance=profile)
-        password_form = PasswordChangeCustomForm(user)
+            # Si el formulario de contraseña tiene errores, mantenemos user_form y profile_form
+            # que ya están inicializados arriba
+        
+        elif 'delete_account' in request.POST:
+            # Confirmar eliminación de cuenta
+            user.delete()
+            messages.success(request, 'Tu cuenta ha sido eliminada permanentemente. Esperamos verte de nuevo pronto.')
+            return redirect('login')
     
     context = {
         'user_form': user_form,

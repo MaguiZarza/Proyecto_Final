@@ -123,6 +123,7 @@ class PedidoListView(LoginRequiredMixin, ListView):
         cliente = self.request.GET.get('cliente')
         fecha_desde = self.request.GET.get('fecha_desde')
         fecha_hasta = self.request.GET.get('fecha_hasta')
+        orden_fecha = self.request.GET.get('orden_fecha', 'cercana')  # Nuevo: orden por fecha
         
         if estado:
             queryset = queryset.filter(estado=estado)
@@ -135,12 +136,35 @@ class PedidoListView(LoginRequiredMixin, ListView):
         if fecha_hasta:
             queryset = queryset.filter(fecha_entrega__lte=fecha_hasta)
         
+        # Ordenar por fecha
+        if orden_fecha == 'cercana':
+            # Más cercana primero (próximas a vencer)
+            queryset = queryset.order_by('fecha_entrega')
+        elif orden_fecha == 'lejana':
+            # Más lejana primero (las que tienen más tiempo)
+            queryset = queryset.order_by('-fecha_entrega')
+        elif orden_fecha == 'reciente':
+            # Pedidos más recientes primero
+            queryset = queryset.order_by('-fecha_creacion')
+        elif orden_fecha == 'antiguo':
+            # Pedidos más antiguos primero
+            queryset = queryset.order_by('fecha_creacion')
+        
         return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['estados'] = Pedido.ESTADO_CHOICES
         context['prioridades'] = Pedido.PRIORIDAD_CHOICES
+        
+        # Pasar los valores actuales de los filtros al contexto
+        context['filtro_estado'] = self.request.GET.get('estado', '')
+        context['filtro_prioridad'] = self.request.GET.get('prioridad', '')
+        context['filtro_cliente'] = self.request.GET.get('cliente', '')
+        context['filtro_fecha_desde'] = self.request.GET.get('fecha_desde', '')
+        context['filtro_fecha_hasta'] = self.request.GET.get('fecha_hasta', '')
+        context['filtro_orden_fecha'] = self.request.GET.get('orden_fecha', 'cercana')
+        
         return context
 
 class PedidoCreateView(LoginRequiredMixin, CreateView):
