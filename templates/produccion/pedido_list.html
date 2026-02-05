@@ -5,13 +5,14 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-md-8">
+    <div class="col-md-12">
         <form method="get" class="row g-3">
+            <!-- Primera fila de filtros -->
             <div class="col-md-3">
                 <select name="estado" class="form-select">
                     <option value="">Todos los estados</option>
                     {% for estado in estados %}
-                        <option value="{{ estado.0 }}" {% if request.GET.estado == estado.0 %}selected{% endif %}>
+                        <option value="{{ estado.0 }}" {% if filtro_estado == estado.0 %}selected{% endif %}>
                             {{ estado.1 }}
                         </option>
                     {% endfor %}
@@ -21,24 +22,38 @@
                 <select name="prioridad" class="form-select">
                     <option value="">Todas las prioridades</option>
                     {% for prioridad in prioridades %}
-                        <option value="{{ prioridad.0 }}" {% if request.GET.prioridad == prioridad.0 %}selected{% endif %}>
+                        <option value="{{ prioridad.0 }}" {% if filtro_prioridad == prioridad.0 %}selected{% endif %}>
                             {{ prioridad.1 }}
                         </option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
-                <input type="text" name="cliente" class="form-control" placeholder="Cliente" value="{{ request.GET.cliente }}">
+            <div class="col-md-3">
+                <input type="text" name="cliente" class="form-control" placeholder="Cliente" value="{{ filtro_cliente }}">
             </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            
+            <!-- Segunda fila de filtros -->
+            <div class="col-md-3">
+                <input type="date" name="fecha_desde" class="form-control" 
+                       placeholder="Desde" value="{{ filtro_fecha_desde }}"
+                       title="Filtrar desde esta fecha">
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="fecha_hasta" class="form-control" 
+                       placeholder="Hasta" value="{{ filtro_fecha_hasta }}"
+                       title="Filtrar hasta esta fecha">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-2"></i> Filtrar
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'pedido_list' %}" class="btn btn-secondary w-100">
+                    <i class="bi bi-arrow-clockwise me-2"></i> Limpiar
+                </a>
             </div>
         </form>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{% url 'pedido_create' %}" class="btn btn-success">
-            <i class="bi bi-plus-circle me-2"></i> Nuevo Pedido
-        </a>
     </div>
 </div>
 
@@ -61,7 +76,7 @@
                 <tbody>
                     {% for pedido in pedidos %}
                     <!-- Modal de confirmación para eliminar pedido -->
-<div class="modal fade" id="eliminarPedidoModal" tabindex="-1">
+<div class="modal fade" id="eliminarPedidoModal{{ pedido.pk }}" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -75,7 +90,7 @@
                 <p>¿Estás seguro de que deseas eliminar el pedido <strong>{{ pedido.codigo }}</strong>?</p>
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-circle me-1"></i>
-                    <strong>Advertencia:</strong> Esta acción no se puede deshacer. Se eliminarán todos los datos relacionados con este pedido.
+                    <strong>Advertencia:</strong> Esta acción no se puede deshacer.
                 </div>
                 <p class="mb-0"><strong>Cliente:</strong> {{ pedido.cliente }}</p>
                 <p class="mb-0"><strong>Producto:</strong> {{ pedido.producto.nombre|default:"N/A" }}</p>
@@ -110,41 +125,40 @@
                         <td>{{ pedido.cantidad }}</td>
                         <td>
                             {% if pedido.fecha_entrega %}
-                                {{ pedido.fecha_entrega|date:"d/m/y" }}
-                                {% if pedido.es_urgente %}
-                                    <span class="badge bg-danger ms-1">Urgente</span>
-                                {% endif %}
+                                {{ pedido.fecha_entrega|date:"d/m/Y" }}
                             {% endif %}
                         </td>
                         <td>
-                            <span class="priority-badge priority-{{ pedido.prioridad }}"></span>
-                            {{ pedido.get_prioridad_display }}
+                            <span class="badge priority-badge priority-{{ pedido.prioridad }}">
+                                {{ pedido.get_prioridad_display }}
+                            </span>
                         </td>
                         <td>
-                            <span class="status-badge status-{{ pedido.estado }}">
+                            <span class="badge status-badge status-{{ pedido.estado }}">
                                 {{ pedido.get_estado_display }}
                             </span>
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a href="{% url 'pedido_detail' pk=pedido.pk %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'pedido_detail' pk=pedido.pk %}" class="btn btn-sm btn-outline-primary" title="Ver detalle">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{% url 'pedido_update' pk=pedido.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <a href="{% url 'pedido_update' pk=pedido.pk %}" class="btn btn-sm btn-outline-secondary" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a href="#" class="btn btn-sm btn-outline-danger" 
-                                    data-bs-toggle="modal" data-bs-target="#eliminarPedidoModal"
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    data-bs-toggle="modal" data-bs-target="#eliminarPedidoModal{{ pedido.pk }}"
                                     title="Eliminar pedido">
                                     <i class="bi bi-trash"></i>
-                                </a>
+                                </button>
                             </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="8" class="text-center py-4 text-muted">
-                            No hay pedidos registrados
+                            <i class="bi bi-inbox fs-1"></i>
+                            <p class="mt-2">No hay pedidos registrados</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -155,14 +169,23 @@
     <div class="card-footer">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <span class="text-muted">Mostrando {{ pedidos|length }} de {{ total_pedidos }} pedidos</span>
+                <span class="text-muted">
+                    Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ paginator.count }} pedidos
+                </span>
             </div>
             {% if is_paginated %}
             <nav>
                 <ul class="pagination mb-0">
                     {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                        <a class="page-link" href="?page=1{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
                     </li>
                     {% endif %}
                     
@@ -180,7 +203,14 @@
                     
                     {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente</a>
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
                     </li>
                     {% endif %}
                 </ul>
@@ -189,4 +219,22 @@
         </div>
     </div>
 </div>
+
+<style>
+.priority-badge {
+    font-size: 0.8em;
+}
+.priority-1 { background-color: #0d6efd; } /* Baja - Azul */
+.priority-2 { background-color: #ffc107; color: #000; } /* Media - Amarillo */
+.priority-3 { background-color: #fd7e14; } /* Alta - Naranja */
+.priority-4 { background-color: #dc3545; } /* Urgente - Rojo */
+
+.status-badge {
+    font-size: 0.8em;
+}
+.status-pendiente { background-color: #6c757d; } /* Pendiente - Gris */
+.status-en_proceso { background-color: #0dcaf0; } /* En Proceso - Celeste */
+.status-completado { background-color: #198754; } /* Completado - Verde */
+.status-cancelado { background-color: #dc3545; } /* Cancelado - Rojo */
+</style>
 {% endblock %}

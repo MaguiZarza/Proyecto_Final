@@ -14,7 +14,7 @@ class Profile(models.Model):
         blank=True,
         null=True,
         verbose_name="Foto de perfil",
-        default='profile_images/default_profile.png'
+        default='profile_images/default.png'
     )
     
     def __str__(self):

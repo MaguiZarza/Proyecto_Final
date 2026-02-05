@@ -7,30 +7,8 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-md-3">
-            <!-- Menú lateral de configuración -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Configuración</h5>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="{% url 'perfil' %}" class="list-group-item list-group-item-action">
-                        <i class="bi bi-person me-2"></i>Mi Perfil
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="bi bi-bell me-2"></i>Notificaciones
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="bi bi-display me-2"></i>Apariencia
-                    </a>
-                    <a href="{% url 'admin:index' %}" target="_blank" class="list-group-item list-group-item-action">
-                        <i class="bi bi-shield-lock me-2"></i>Administración
-                    </a>
-                </div>
-            </div>
-        </div>
         
-        <div class="col-md-9">
+        <div class="col-12">
             <!-- Configuración general -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header">
@@ -59,7 +37,6 @@
                             <select class="form-select" id="languageSelect">
                                 <option selected>Español</option>
                                 <option>Inglés</option>
-                                <option>Catalán</option>
                             </select>
                         </div>
                         

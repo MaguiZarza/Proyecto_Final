@@ -2,23 +2,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
 from django.contrib import messages
-from .forms import CustomUserCreationForm
 import traceback
 from django.contrib.auth.views import LoginView
-from .forms import EmailAuthenticationForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.shortcuts import redirect
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
-from django.contrib.auth.views import LoginView
-from django.contrib import messages
-from .forms import CustomUserCreationForm, EmailAuthenticationForm
-import traceback
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .forms import UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm
+from .forms import CustomUserCreationForm, EmailAuthenticationForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm, ProfileImageForm
 from .models import Profile
 
 
@@ -164,6 +152,11 @@ def perfil_view(request):
     user = request.user
     profile = Profile.objects.get_or_create(user=user)[0]
     
+    # Inicializar formularios (para GET y para cuando hay errores en POST)
+    user_form = UserUpdateForm(instance=user)
+    profile_form = ProfileUpdateForm(instance=profile)
+    password_form = PasswordChangeCustomForm(user)
+    
     if request.method == 'POST':
         # Determinar qué formulario se envió
         if 'update_profile' in request.POST:
@@ -171,10 +164,19 @@ def perfil_view(request):
             profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
             
             if user_form.is_valid() and profile_form.is_valid():
+                # Verificar si se solicitó eliminar la imagen
+                if 'remove_profile_image' in request.POST:
+                    if profile.profile_image:
+                        # Eliminar el archivo físico si no es la imagen por defecto
+                        if profile.profile_image.name != 'profile_images/default.png':
+                            profile.profile_image.delete(save=False)
+                        profile.profile_image = None
+                
                 user_form.save()
                 profile_form.save()
                 messages.success(request, '¡Perfil actualizado exitosamente!')
                 return redirect('perfil')
+            # Si no es válido, se quedan los formularios con errores
         
         elif 'change_password' in request.POST:
             password_form = PasswordChangeCustomForm(user, request.POST)
@@ -182,11 +184,14 @@ def perfil_view(request):
                 password_form.save()
                 messages.success(request, '¡Contraseña cambiada exitosamente! Por favor, inicia sesión nuevamente.')
                 return redirect('logout')
-    
-    else:
-        user_form = UserUpdateForm(instance=user)
-        profile_form = ProfileUpdateForm(instance=profile)
-        password_form = PasswordChangeCustomForm(user)
+            # Si el formulario de contraseña tiene errores, mantenemos user_form y profile_form
+            # que ya están inicializados arriba
+        
+        elif 'delete_account' in request.POST:
+            # Confirmar eliminación de cuenta
+            user.delete()
+            messages.success(request, 'Tu cuenta ha sido eliminada permanentemente. Esperamos verte de nuevo pronto.')
+            return redirect('login')
     
     context = {
         'user_form': user_form,
@@ -201,3 +206,20 @@ def perfil_view(request):
 def configuracion_view(request):
     """Vista de configuración general"""
     return render(request, 'usuarios/configuracion.html')
+
+@login_required
+def upload_profile_image(request):
+    try:
+        profile = request.user.profile
+    except Profile.DoesNotExist:
+        profile = Profile.objects.create(user=request.user)
+    
+    if request.method == 'POST':
+        form = ProfileImageForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = ProfileImageForm(instance=profile)
+    
+    return render(request, 'upload_image.html', {'form': form})
